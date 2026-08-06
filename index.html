@@ -198,6 +198,12 @@
   .box-office input:focus-visible{ outline:none; }
   .box-office:focus-within{ border-color:var(--gold-dim); }
 
+  .add-error{
+    color:var(--error); font-size:0.78rem; line-height:1.4;
+    margin:-1.7rem 0 2.4rem; padding:0 0.2rem;
+  }
+  .add-error[hidden]{ display:none; }
+
   .btn{
     font-family:'JetBrains Mono', monospace;
     font-size:0.82rem;
@@ -215,6 +221,7 @@
   .btn-primary{ background:var(--gold); color:var(--gold-contrast); font-weight:600; }
   .btn-primary:hover{ background:var(--gold-hover); }
   .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; }
+  .btn-icon{ display:none; }
 
   /* ---------- list & empty state ---------- */
   ul.tickets{
@@ -515,7 +522,13 @@
     .search-result-poster{ width:34px; height:51px; }
     .trailer-thumb{ width:78px; height:44px; }
     .search-result-title{ font-size:1.05rem; }
-    .box-office .btn{ padding:0.7rem 0.8rem; font-size:0.74rem; }
+    .box-office .btn-primary{
+      padding:0.7rem 1rem;
+    }
+    .box-office .btn-label{ display:none; }
+    .box-office .btn-icon{
+      display:block; font-size:1.4rem; font-weight:700; line-height:1;
+    }
   }
 </style>
 </head>
@@ -538,8 +551,12 @@
 
     <form class="box-office" id="addForm">
       <input type="text" id="titleInput" placeholder="Tytuł filmu…" autocomplete="off" maxlength="200" required>
-      <button class="btn btn-primary" type="submit">Dodaj do listy</button>
+      <button class="btn btn-primary" type="submit" aria-label="Dodaj do listy">
+        <span class="btn-icon" aria-hidden="true">+</span>
+        <span class="btn-label">Dodaj do listy</span>
+      </button>
     </form>
+    <p class="add-error mono" id="addError" role="alert" hidden></p>
 
     <ul class="tickets" id="movieList"></ul>
   </main>
@@ -618,6 +635,7 @@
   const formEl = document.getElementById("addForm");
   const inputEl = document.getElementById("titleInput");
   const addBtn = formEl.querySelector('button[type="submit"]');
+  const addErrorEl = document.getElementById("addError");
   const themeBtn = document.getElementById("themeBtn");
   const settingsBtn = document.getElementById("settingsBtn");
   const settingsBackdrop = document.getElementById("settingsBackdrop");
@@ -866,6 +884,17 @@
     return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
   }
 
+  // fetch() rzuca TypeError("Failed to fetch") zarówno przy braku internetu, jak i
+  // przy zablokowaniu połączenia przez politykę bezpieczeństwa hostingu (np. CSP na
+  // darmowym koncie Neocities) — to nie da się odróżnić z poziomu JS, więc dajemy
+  // wskazówkę obejmującą obie możliwości zamiast surowego, technicznego komunikatu.
+  function friendlyError(err, fallback){
+    if(err instanceof TypeError){
+      return "Nie udało się połączyć z serwerem. Sprawdź internet — a jeśli strona jest hostowana na darmowym koncie (np. Neocities), ich polityka bezpieczeństwa (CSP) może blokować takie połączenia.";
+    }
+    return err.message || fallback;
+  }
+
   async function ensureTmdbId(movie){
     if(movie.tmdbId) return movie.tmdbId;
     const key = getApiKey();
@@ -972,14 +1001,14 @@
         count: details.vote_count || 0,
       };
     }catch(err){
-      movie.data.ocena = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+      movie.data.ocena = { error: friendlyError(err, "Coś poszło nie tak. Spróbuj ponownie.") };
     }
 
     if(omdbKey){
       try{
         movie.data.imdb = await fetchImdb(movie);
       }catch(err){
-        movie.data.imdb = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+        movie.data.imdb = { error: friendlyError(err, "Coś poszło nie tak. Spróbuj ponownie.") };
       }
     } else {
       movie.data.imdb = null;
@@ -995,7 +1024,7 @@
     try{
       movie.data.imdb = await fetchImdb(movie);
     }catch(err){
-      movie.data.imdb = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+      movie.data.imdb = { error: friendlyError(err, "Coś poszło nie tak. Spróbuj ponownie.") };
     }
     saveMovies();
     render();
@@ -1014,7 +1043,7 @@
       else result = await fetchZwiastun(movie);
       movie.data[kind] = result;
     }catch(err){
-      movie.data[kind] = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+      movie.data[kind] = { error: friendlyError(err, "Coś poszło nie tak. Spróbuj ponownie.") };
     }
     saveMovies();
     render();
@@ -1047,16 +1076,19 @@
     e.preventDefault();
     const title = inputEl.value.trim();
     if(!title) return;
+    addErrorEl.hidden = true;
 
     if(!getApiKey()){
       addMovie(createMovie(title));
       inputEl.value = "";
+      inputEl.blur();
       return;
     }
 
-    const originalLabel = addBtn.textContent;
+    const addLabelEl = addBtn.querySelector(".btn-label");
+    const originalLabel = addLabelEl.textContent;
     addBtn.disabled = true;
-    addBtn.textContent = "Szukam…";
+    addLabelEl.textContent = "Szukam…";
     try{
       const key = getApiKey();
       const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=pl-PL&query=${encodeURIComponent(title)}`);
@@ -1064,12 +1096,16 @@
       const json = await res.json();
       openPickModal(title, json.results || []);
     }catch(err){
-      // wyszukiwanie zawiodło — nie blokuj użytkownika, dodaj wpisany tytuł wprost
+      // wyszukiwanie zawiodło — nie blokuj użytkownika, dodaj wpisany tytuł wprost,
+      // ale pokaż dlaczego, zamiast cicho maskować problem
+      addErrorEl.textContent = friendlyError(err, "Nie udało się wyszukać w TMDb.") + " Dodano wpisany tytuł bez wyszukiwania.";
+      addErrorEl.hidden = false;
       addMovie(createMovie(title));
       inputEl.value = "";
+      inputEl.blur();
     }finally{
       addBtn.disabled = false;
-      addBtn.textContent = originalLabel;
+      addLabelEl.textContent = originalLabel;
     }
   });
 
@@ -1108,11 +1144,11 @@
     (firstResult || addAnywayBtn).focus();
   }
 
-  function closePickModal(){
+  function closePickModal(refocus = true){
     pickBackdrop.hidden = true;
     pendingTitle = null;
     pendingResults = [];
-    inputEl.focus();
+    if(refocus) inputEl.focus();
   }
 
   searchResultsEl.addEventListener("click", (e) => {
@@ -1139,14 +1175,14 @@
       count: result.vote_count || 0,
     };
     addMovie(movie);
-    closePickModal();
+    closePickModal(false);
     inputEl.value = "";
   });
 
   addAnywayBtn.addEventListener("click", () => {
     if(!pendingTitle) return;
     addMovie(createMovie(pendingTitle));
-    closePickModal();
+    closePickModal(false);
     inputEl.value = "";
   });
 
