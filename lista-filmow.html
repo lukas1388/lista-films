@@ -1,0 +1,1336 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10141d" id="themeColorMeta">
+<title>Do obejrzenia — lista filmów</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10141d;
+    --bg-soft: #171d29;
+    --surface: #1e2635;
+    --surface-hi: #263043;
+    --gold: #b8834a;
+    --gold-dim: #8a6238;
+    --red: #b8604a;
+    --red-dim: #8a4635;
+    --text: #eef0f4;
+    --text-muted: #9ba3b4;
+    --text-faint: #656d80;
+    --border: rgba(238,240,244,0.12);
+    --border-strong: rgba(238,240,244,0.22);
+    --shadow: 0 12px 30px -12px rgba(0,0,0,0.55);
+    --radius: 10px;
+    --on-accent: #f6f1e6;
+    --gold-contrast: #1a1208;
+    --gold-hover: #cc9658;
+    --error: #e0a190;
+    --hero-glow: rgba(184,131,74,0.12);
+    --bulb-glow-dim: rgba(184,131,74,0.3);
+    --bulb-glow-lit: rgba(184,131,74,0.75);
+    --danger-tint: rgba(184,96,74,0.12);
+    color-scheme: dark;
+  }
+
+  :root[data-theme="light"]{
+    --error: #a8402c;
+    --gold-contrast: #f5f1e6;
+    --gold-hover: #385a86;
+    --bg: #ece3d3;
+    --bg-soft: #f4ede0;
+    --surface: #faf6ee;
+    --surface-hi: #f0e6d2;
+    --gold: #2c4870;
+    --gold-dim: #5c7392;
+    --red: #9c4a35;
+    --red-dim: #7a3826;
+    --text: #221f1a;
+    --text-muted: #6b5f4f;
+    --text-faint: #92836e;
+    --border: rgba(34,31,26,0.14);
+    --border-strong: rgba(34,31,26,0.26);
+    --shadow: 0 12px 26px -14px rgba(44,48,60,0.28);
+    --hero-glow: rgba(44,72,112,0.08);
+    --bulb-glow-dim: rgba(44,72,112,0.22);
+    --bulb-glow-lit: rgba(44,72,112,0.55);
+    --danger-tint: rgba(156,74,53,0.10);
+    color-scheme: light;
+  }
+
+  *{ box-sizing:border-box; }
+
+  .visually-hidden{
+    position:absolute; width:1px; height:1px;
+    padding:0; margin:-1px; overflow:hidden;
+    clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, var(--hero-glow), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Source Serif 4', Georgia, serif;
+    -webkit-font-smoothing:antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  body *{ transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; }
+
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-bottom:6rem;
+  }
+
+  a{ color:inherit; }
+
+  .mono{ font-family:'JetBrains Mono', ui-monospace, monospace; }
+
+  :root[data-theme="light"] h1{ text-shadow:none; }
+  :root[data-theme="light"] .bulbs span:not(.lit){ background:var(--border-strong); }
+
+  main{
+    width:100%;
+    max-width:760px;
+    padding: 2.6rem 1.4rem 0;
+  }
+
+  /* ---------- header ---------- */
+  .page-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:1rem;
+    margin-bottom:2.2rem;
+  }
+  .eyebrow{
+    font-size:0.72rem;
+    letter-spacing:0.24em;
+    color:var(--gold);
+    text-transform:uppercase;
+    margin:0 0 0.4rem;
+  }
+  h1{
+    font-family:'Bebas Neue', sans-serif;
+    font-weight:400;
+    font-size:clamp(2.4rem, 6vw, 3.4rem);
+    letter-spacing:0.03em;
+    margin:0;
+    line-height:0.95;
+    text-shadow: 0 0 22px var(--hero-glow);
+  }
+  .bulbs{
+    display:flex;
+    gap:7px;
+    margin-top:0.7rem;
+  }
+  .bulbs span{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--gold-dim);
+    box-shadow:0 0 4px var(--bulb-glow-dim);
+  }
+  .bulbs span.lit{
+    background:var(--gold);
+    box-shadow:0 0 8px 1px var(--bulb-glow-lit);
+    animation: pulse-bulb 2.4s ease-in-out infinite;
+  }
+  .bulbs span:nth-child(2).lit{ animation-delay:0.3s; }
+  .bulbs span:nth-child(4).lit{ animation-delay:0.6s; }
+  @keyframes pulse-bulb{
+    0%, 100%{ opacity:1; }
+    50%{ opacity:0.35; }
+  }
+
+  .head-actions{
+    display:flex;
+    gap:0.55rem;
+    flex:none;
+  }
+  .icon-btn{
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text-muted);
+    width:42px; height:42px;
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    font-size:1.05rem;
+    flex:none;
+    transition: color 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .icon-btn:hover{ color:var(--gold); border-color:var(--border-strong); }
+  .icon-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  /* ---------- add form ---------- */
+  .box-office{
+    display:flex;
+    gap:0.6rem;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:0.55rem;
+    margin-bottom:2.4rem;
+    box-shadow:var(--shadow);
+  }
+  .box-office input{
+    flex:1;
+    background:transparent;
+    border:none;
+    color:var(--text);
+    font-family:'Source Serif 4', serif;
+    font-size:1.02rem;
+    padding:0.55rem 0.7rem;
+    min-width:0;
+  }
+  .box-office input::placeholder{ color:var(--text-faint); }
+  .box-office input:focus{ outline:none; }
+  .box-office input:focus-visible{ outline:none; }
+  .box-office:focus-within{ border-color:var(--gold-dim); }
+
+  .btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.82rem;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    border:none;
+    border-radius:7px;
+    padding:0.7rem 1.1rem;
+    cursor:pointer;
+    transition: background 0.15s, transform 0.05s, opacity 0.15s;
+    white-space:nowrap;
+  }
+  .btn:active{ transform:translateY(1px); }
+  .btn:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+  .btn-primary{ background:var(--gold); color:var(--gold-contrast); font-weight:600; }
+  .btn-primary:hover{ background:var(--gold-hover); }
+  .btn-primary:disabled{ opacity:0.5; cursor:not-allowed; }
+
+  /* ---------- list & empty state ---------- */
+  ul.tickets{
+    list-style:none;
+    margin:0; padding:0;
+    display:flex;
+    flex-direction:column;
+    gap:1.1rem;
+  }
+
+  .empty-state{
+    border:1px dashed var(--border-strong);
+    border-radius:var(--radius);
+    padding:2.6rem 1.5rem;
+    text-align:center;
+    color:var(--text-muted);
+  }
+  .empty-state p{ margin:0.3rem 0 0; font-size:0.98rem; }
+
+  /* ---------- ticket card ---------- */
+  /* .ticket-wrap is the single visual card: it owns the background, border,
+     radius and shadow, so the ticket row and the detail panel beneath it
+     always read as one continuous piece of card stock, never two. */
+  .ticket-wrap{
+    display:flex;
+    flex-direction:column;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .ticket{
+    position:relative;
+    display:flex;
+  }
+
+  .ticket-info{
+    position:relative;
+    flex:1;
+    min-width:0;
+    padding:1.05rem 1.1rem;
+    display:flex;
+    flex-direction:column;
+    gap:0.25rem;
+  }
+  .ticket-title{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:1.5rem;
+    letter-spacing:0.02em;
+    line-height:1.1;
+    margin:0;
+    padding-right:2.6rem;
+    word-break:break-word;
+  }
+  .ticket-meta{
+    font-size:0.74rem;
+    color:var(--text-faint);
+    letter-spacing:0.03em;
+  }
+
+  .ticket-remove{
+    position:absolute;
+    top:0.5rem; right:0.55rem;
+    background:none;
+    border:none;
+    color:var(--text-faint);
+    font-size:1.05rem;
+    line-height:1;
+    cursor:pointer;
+    padding:0.45rem 0.55rem;
+    border-radius:6px;
+  }
+  .ticket-remove:hover{ color:var(--red); background:var(--danger-tint); }
+  .ticket-remove:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+
+  .ticket-actions{
+    width:148px;
+    flex:none;
+    display:flex;
+    flex-direction:column;
+    border-left:1px dashed var(--border-strong);
+    position:relative;
+  }
+  .ticket-actions::before, .ticket-actions::after{
+    content:"";
+    position:absolute;
+    left:-10px;
+    width:19px; height:19px;
+    border-radius:50%;
+    background:var(--bg);
+    border:1px solid var(--border);
+  }
+  .ticket-actions::before{ top:8px; }
+  .ticket-actions::after{ bottom:8px; }
+
+  .action-btn{
+    background:none;
+    border:none;
+    color:var(--text-muted);
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.72rem;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    text-align:left;
+    padding:0.65rem 1.3rem 0.65rem 1rem;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:0.5rem;
+    transition: background 0.15s, color 0.15s;
+    border-bottom:1px solid var(--border);
+  }
+  .ticket-actions .action-btn:last-child{ border-bottom:none; }
+  .action-btn:hover{ background:var(--surface-hi); color:var(--text); }
+  .action-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:-2px; }
+  .action-btn.open{ color:var(--gold); background:var(--surface-hi); }
+  .action-btn .chev{ opacity:0.5; font-size:0.7rem; transition:transform 0.15s; }
+  .action-btn.open .chev{ transform:rotate(90deg); opacity:1; }
+
+  /* ---------- detail panel ---------- */
+  .ticket-panel{
+    border-top:1px dashed var(--border-strong);
+    padding:1rem 1.3rem 1.2rem;
+    font-size:0.94rem;
+    line-height:1.55;
+    color:var(--text);
+  }
+  .ticket-panel[hidden]{ display:none; }
+
+  .panel-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:0.68rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 0.55rem;
+  }
+  .panel-loading{ color:var(--text-muted); font-style:italic; }
+  .panel-error{ color:var(--error); font-size:0.9rem; }
+  .panel-error .retry{
+    background:none; border:1px solid var(--border-strong); color:var(--text);
+    font-family:'JetBrains Mono', monospace; font-size:0.72rem; text-transform:uppercase;
+    padding:0.35rem 0.65rem; border-radius:6px; cursor:pointer; margin-top:0.6rem;
+  }
+  .panel-error .retry:hover{ border-color:var(--gold); color:var(--gold); }
+
+  .opis-body{ display:flex; gap:1rem; align-items:flex-start; }
+  .opis-poster{ width:76px; border-radius:6px; flex:none; box-shadow:0 6px 16px rgba(0,0,0,0.4); }
+  .opis-text{ margin:0; color:var(--text); }
+  .opis-year{ color:var(--text-faint); font-size:0.82rem; }
+
+  .trailer-link{
+    display:inline-flex; align-items:center; gap:0.45rem;
+    background:var(--gold); color:var(--gold-contrast);
+    font-family:'JetBrains Mono', monospace; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.03em;
+    padding:0.6rem 0.95rem; border-radius:6px; text-decoration:none;
+    border:1px solid transparent; cursor:pointer; line-height:1.2;
+    transition: background 0.15s;
+  }
+  .trailer-link:hover{ background:var(--gold-hover); }
+  .trailer-link:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .ocena-row{ display:flex; align-items:baseline; gap:0.5rem; margin-bottom:0.3rem; }
+  .ocena-score{ font-family:'Bebas Neue', sans-serif; font-size:2.1rem; color:var(--gold); line-height:1; }
+  .ocena-of{ color:var(--text-faint); font-size:0.85rem; }
+  .ocena-count{ color:var(--text-muted); font-size:0.82rem; margin:0 0 0.9rem; }
+  .rating-block, .filmweb-note{
+    border-top:1px dashed var(--border);
+    margin-top:0.85rem; padding-top:0.85rem;
+    color:var(--text-muted); font-size:0.86rem;
+  }
+  .rating-block .ocena-count{ margin-bottom:0; }
+  .filmweb-link{
+    display:inline-flex; align-items:center; gap:0.4rem;
+    background:var(--red-dim); color:var(--on-accent);
+    font-family:'JetBrains Mono', monospace; font-size:0.76rem; text-transform:uppercase; letter-spacing:0.03em;
+    padding:0.55rem 0.85rem; border-radius:6px; text-decoration:none;
+    border:1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .filmweb-link:hover{ background:var(--red); border-color:rgba(243,239,232,0.25); }
+
+  .key-missing{
+    color:var(--text-muted);
+  }
+  .key-missing button{
+    background:none; border:1px solid var(--gold-dim); color:var(--gold);
+    font-family:'JetBrains Mono', monospace; font-size:0.74rem; text-transform:uppercase;
+    padding:0.4rem 0.7rem; border-radius:6px; cursor:pointer; margin-top:0.6rem;
+  }
+  .key-missing button:hover{ background:var(--hero-glow); }
+
+  /* ---------- settings modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(10,9,13,0.66);
+    display:flex; align-items:center; justify-content:center;
+    padding:1.2rem; z-index:20;
+  }
+  .modal-backdrop[hidden]{ display:none; }
+  .modal{
+    background:var(--surface); border:1px solid var(--border-strong);
+    border-radius:12px; width:100%; max-width:420px;
+    padding:1.6rem; box-shadow:0 24px 60px -20px rgba(0,0,0,0.7);
+    max-height:calc(100vh - 2.4rem); overflow-y:auto;
+  }
+  .modal.modal-wide{ max-width:480px; }
+  .modal h2{
+    font-family:'Bebas Neue', sans-serif; font-weight:400; font-size:1.5rem;
+    letter-spacing:0.02em; margin:0 0 0.3rem;
+  }
+  .modal p{ color:var(--text-muted); font-size:0.88rem; line-height:1.5; margin:0 0 1rem; }
+  .modal p a{ color:var(--gold); }
+  .modal p.field-hint{ font-size:0.76rem; color:var(--text-faint); margin:0.4rem 0 0; line-height:1.4; }
+  .modal label.field-spacing{ margin-top:1.1rem; }
+  .modal label{
+    display:block; font-family:'JetBrains Mono', monospace; font-size:0.7rem;
+    text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.4rem;
+  }
+  .modal input[type="text"]{
+    width:100%; background:var(--bg-soft); border:1px solid var(--border-strong);
+    color:var(--text); padding:0.7rem 0.75rem; border-radius:7px; font-family:'JetBrains Mono', monospace;
+    font-size:1rem;
+  }
+  .modal input[type="text"]:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:0.6rem; margin-top:1.2rem; }
+  .btn-ghost{
+    background:none; color:var(--text-muted); border:1px solid var(--border-strong);
+  }
+  .btn-ghost:hover{ color:var(--text); border-color:var(--text-faint); }
+  .btn-danger{ background:var(--red-dim); color:var(--on-accent); }
+  .btn-danger:hover{ background:var(--red); }
+  .save-hint{ font-size:0.78rem; color:var(--gold); margin-top:0.6rem; min-height:1em; }
+
+  .search-results{
+    display:flex; flex-direction:column; gap:0.5rem;
+    max-height:min(360px, 50vh); overflow-y:auto;
+    margin:0 0 0.9rem; padding-right:0.2rem;
+  }
+  .search-result{
+    display:flex; align-items:center; gap:0.75rem;
+    background:var(--bg-soft); border:1px solid var(--border); border-radius:8px;
+    padding:0.5rem 0.7rem; cursor:pointer; text-align:left; width:100%;
+    font-family:'Source Serif 4', serif; color:var(--text);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .search-result:hover, .search-result:focus-visible{
+    border-color:var(--gold-dim); background:var(--surface-hi); outline:none;
+  }
+  .search-result-poster{
+    width:40px; height:60px; object-fit:cover; border-radius:4px; flex:none;
+    background:var(--surface); box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  }
+  .search-result-poster.placeholder{
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-faint); font-size:1.3rem; font-family:'Bebas Neue', sans-serif;
+  }
+  .trailer-thumb{
+    width:96px; height:54px; object-fit:cover; border-radius:4px; flex:none;
+    background:var(--surface); box-shadow:0 4px 10px rgba(0,0,0,0.3);
+  }
+  .search-result-info{ min-width:0; }
+  .search-result-title{
+    font-family:'Bebas Neue', sans-serif; font-size:1.15rem; letter-spacing:0.01em;
+    line-height:1.15; margin:0 0 0.15rem; word-break:break-word;
+  }
+  .search-result-meta{
+    font-family:'JetBrains Mono', monospace; font-size:0.72rem; color:var(--text-faint);
+    display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .search-fallback{
+    display:block; width:100%; text-align:left; background:none;
+    border:1px dashed var(--border-strong); border-radius:8px;
+    padding:0.65rem 0.75rem; color:var(--text-muted); font-size:0.84rem; cursor:pointer;
+    font-family:'JetBrains Mono', monospace; letter-spacing:0.01em;
+  }
+  .search-fallback:hover{ border-color:var(--gold-dim); color:var(--text); }
+  .search-fallback:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+
+  @media (max-width: 480px){
+    .ticket{ flex-direction:column; }
+    .ticket-actions{
+      width:100%; flex-direction:row; border-left:none; border-top:1px dashed var(--border-strong);
+    }
+    .ticket-actions::before, .ticket-actions::after{ display:none; }
+    .action-btn{ flex:1; justify-content:center; padding:0.8rem 0.5rem; border-bottom:none; border-right:1px solid var(--border); }
+    .ticket-actions .action-btn:last-child{ border-right:none; }
+    .opis-body{ flex-direction:column; }
+
+    .page-head{ gap:0.6rem; }
+    h1{ font-size:2.1rem; }
+    .head-actions{ gap:0.4rem; }
+    .icon-btn{ width:38px; height:38px; font-size:0.95rem; }
+
+    .modal{ padding:1.25rem; }
+    .search-result{ padding:0.45rem 0.6rem; gap:0.6rem; }
+    .search-result-poster{ width:34px; height:51px; }
+    .trailer-thumb{ width:78px; height:44px; }
+    .search-result-title{ font-size:1.05rem; }
+    .box-office .btn{ padding:0.7rem 0.8rem; font-size:0.74rem; }
+  }
+</style>
+</head>
+<body>
+
+  <main>
+    <div class="page-head">
+      <div>
+        <p class="eyebrow mono">Twoja lista filmowa</p>
+        <h1>Do obejrzenia</h1>
+        <div class="bulbs" aria-hidden="true">
+          <span class="lit"></span><span></span><span class="lit"></span><span></span><span class="lit"></span><span></span>
+        </div>
+      </div>
+      <div class="head-actions">
+        <button class="icon-btn" id="themeBtn" type="button" aria-label="Przełącz tryb jasny/ciemny">☀</button>
+        <button class="icon-btn" id="settingsBtn" type="button" aria-label="Ustawienia — klucz API">⚙</button>
+      </div>
+    </div>
+
+    <form class="box-office" id="addForm">
+      <input type="text" id="titleInput" placeholder="Tytuł filmu…" autocomplete="off" maxlength="200" required>
+      <button class="btn btn-primary" type="submit">Dodaj do listy</button>
+    </form>
+
+    <ul class="tickets" id="movieList"></ul>
+  </main>
+
+  <!-- Confirm delete modal -->
+  <div class="modal-backdrop" id="confirmBackdrop" hidden>
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <h2 id="confirmTitle">Usunąć z listy?</h2>
+      <p id="confirmText">Ten film zniknie z Twojej listy na stałe. Tej operacji nie da się cofnąć.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelRemove" type="button">Anuluj</button>
+        <button class="btn btn-danger" id="confirmRemove" type="button">Usuń film</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pick movie modal -->
+  <div class="modal-backdrop" id="pickBackdrop" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="pickTitle">
+      <h2 id="pickTitle">Który film?</h2>
+      <p id="pickSubtitle"></p>
+      <div class="search-results" id="searchResults"></div>
+      <button class="search-fallback" id="addAnywayBtn" type="button"></button>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelPick" type="button">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pick trailer modal -->
+  <div class="modal-backdrop" id="trailerBackdrop" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="trailerPickTitle">
+      <h2 id="trailerPickTitle">Który zwiastun?</h2>
+      <p id="trailerPickSubtitle"></p>
+      <div class="search-results" id="trailerResults"></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="cancelTrailerPick" type="button">Anuluj</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal-backdrop" id="settingsBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <h2 id="settingsTitle">Klucze API</h2>
+      <p>
+        Opis i zwiastun pochodzą z bazy TMDb, ocena IMDb — z bazy OMDb. Oba klucze są bezpłatne
+        i zapisywane wyłącznie lokalnie w Twojej przeglądarce.
+      </p>
+      <label for="apiKeyInput">Klucz API TMDb (v3 auth)</label>
+      <input type="text" id="apiKeyInput" placeholder="np. 1a2b3c4d5e6f…" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off">
+      <p class="field-hint">Załóż konto na <a href="https://www.themoviedb.org/signup" target="_blank" rel="noopener">themoviedb.org</a> → ustawienia konta → zakładka API.</p>
+
+      <label for="omdbKeyInput" class="field-spacing">Klucz API OMDb</label>
+      <input type="text" id="omdbKeyInput" placeholder="np. a1b2c3d4" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off">
+      <p class="field-hint">Darmowy klucz na <a href="https://www.omdbapi.com/apikey.aspx" target="_blank" rel="noopener">omdbapi.com</a> (limit 1000 zapytań/dzień). Bez niego ocena IMDb się nie pokaże.</p>
+
+      <p class="save-hint" id="saveHint" aria-live="polite"></p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" id="closeSettings" type="button">Zamknij</button>
+        <button class="btn btn-primary" id="saveSettings" type="button">Zapisz klucze</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = "watchlist.movies.v1";
+  const API_KEY_STORAGE = "watchlist.tmdbApiKey.v1";
+  const OMDB_API_KEY_STORAGE = "watchlist.omdbApiKey.v1";
+  const THEME_STORAGE = "watchlist.theme.v1";
+
+  const listEl = document.getElementById("movieList");
+  const formEl = document.getElementById("addForm");
+  const inputEl = document.getElementById("titleInput");
+  const addBtn = formEl.querySelector('button[type="submit"]');
+  const themeBtn = document.getElementById("themeBtn");
+  const settingsBtn = document.getElementById("settingsBtn");
+  const settingsBackdrop = document.getElementById("settingsBackdrop");
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const omdbKeyInput = document.getElementById("omdbKeyInput");
+  const saveSettingsBtn = document.getElementById("saveSettings");
+  const closeSettingsBtn = document.getElementById("closeSettings");
+  const saveHint = document.getElementById("saveHint");
+  const confirmBackdrop = document.getElementById("confirmBackdrop");
+  const confirmText = document.getElementById("confirmText");
+  const cancelRemoveBtn = document.getElementById("cancelRemove");
+  const confirmRemoveBtn = document.getElementById("confirmRemove");
+  const pickBackdrop = document.getElementById("pickBackdrop");
+  const pickSubtitle = document.getElementById("pickSubtitle");
+  const searchResultsEl = document.getElementById("searchResults");
+  const addAnywayBtn = document.getElementById("addAnywayBtn");
+  const cancelPickBtn = document.getElementById("cancelPick");
+  const trailerBackdrop = document.getElementById("trailerBackdrop");
+  const trailerPickSubtitle = document.getElementById("trailerPickSubtitle");
+  const trailerResultsEl = document.getElementById("trailerResults");
+  const cancelTrailerPickBtn = document.getElementById("cancelTrailerPick");
+
+  // ---------- persistence ----------
+  function loadMovies(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ console.error("Nie udało się odczytać listy:", e); return []; }
+  }
+  function saveMovies(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(movies)); }
+    catch(e){ console.error("Nie udało się zapisać listy:", e); }
+  }
+  function getApiKey(){ return (localStorage.getItem(API_KEY_STORAGE) || "").trim(); }
+  function setApiKey(key){ localStorage.setItem(API_KEY_STORAGE, key.trim()); }
+  function getOmdbApiKey(){ return (localStorage.getItem(OMDB_API_KEY_STORAGE) || "").trim(); }
+  function setOmdbApiKey(key){ localStorage.setItem(OMDB_API_KEY_STORAGE, key.trim()); }
+
+  let movies = loadMovies();
+
+  // which panel is open per movie id: 'opis' | 'zwiastun' | 'ocena' | null
+  const openPanel = {};
+
+  // ---------- helpers ----------
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    }[c]));
+  }
+  function formatReleaseDate(iso){
+    if(!iso) return null;
+    const parts = iso.split("-").map(Number);
+    if(parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return null;
+    const [y, m, d] = parts;
+    try{
+      return new Date(y, m - 1, d).toLocaleDateString("pl-PL", { day:"2-digit", month:"2-digit", year:"numeric" });
+    }catch(e){ return null; }
+  }
+  function movieReleaseLabel(movie){
+    const formatted = formatReleaseDate(movie.releaseDate);
+    if(formatted) return formatted;
+    if(movie.year) return movie.year;
+    return "nieznana";
+  }
+  function findMovie(id){ return movies.find(m => m.id === id); }
+
+  // ---------- rendering ----------
+  function render(){
+    if(movies.length === 0){
+      listEl.innerHTML = `
+        <li class="empty-state">
+          <p class="eyebrow mono" style="display:flex;justify-content:center;">Ekran jest pusty</p>
+          <p>Lista jest pusta. Wpisz tytuł powyżej, żeby dodać pierwszy film.</p>
+        </li>`;
+      return;
+    }
+
+    listEl.innerHTML = movies.map(renderMovieItem).join("");
+  }
+
+  function renderMovieItem(movie){
+    const active = openPanel[movie.id] || null;
+    const panelHtml = active ? renderPanel(movie, active) : "";
+    return `
+      <li class="ticket-wrap" data-id="${movie.id}">
+        <div class="ticket">
+          <div class="ticket-info">
+            <button class="ticket-remove" data-action="remove" aria-label="Usuń ${escapeHtml(movie.title)} z listy" title="Usuń z listy">✕</button>
+            <p class="ticket-title">${escapeHtml(movie.title)}</p>
+            <p class="ticket-meta mono">premiera: ${movieReleaseLabel(movie)}</p>
+          </div>
+          <div class="ticket-actions">
+            <button class="action-btn ${active==='opis'?'open':''}" data-action="opis" type="button">
+              <span>Opis</span><span class="chev">▸</span>
+            </button>
+            <button class="action-btn ${active==='zwiastun'?'open':''}" data-action="zwiastun" type="button">
+              <span>Zwiastun</span><span class="chev">▸</span>
+            </button>
+            <button class="action-btn ${active==='ocena'?'open':''}" data-action="ocena" type="button">
+              <span>Ocena</span><span class="chev">▸</span>
+            </button>
+          </div>
+        </div>
+        ${panelHtml}
+      </li>`;
+  }
+
+  function renderPanel(movie, kind){
+    const state = movie.data[kind];
+
+    if(!getApiKey()){
+      return `
+        <div class="ticket-panel">
+          <p class="panel-label mono visually-hidden">${labelFor(kind)}</p>
+          <p class="key-missing">Żeby pobrać te dane, dodaj najpierw swój klucz API TMDb.
+            <br><button data-action="open-settings" type="button">Dodaj klucz API</button>
+          </p>
+        </div>`;
+    }
+
+    if(state && state.loading){
+      return `
+        <div class="ticket-panel">
+          <p class="panel-label mono visually-hidden">${labelFor(kind)}</p>
+          <p class="panel-loading">Pobieram dane…</p>
+        </div>`;
+    }
+
+    if(state && state.error){
+      return `
+        <div class="ticket-panel">
+          <p class="panel-label mono visually-hidden">${labelFor(kind)}</p>
+          <p class="panel-error">${escapeHtml(state.error)}
+            <br><button class="retry" data-action="retry-${kind}" type="button">Spróbuj ponownie</button>
+          </p>
+        </div>`;
+    }
+
+    if(!state){
+      // not fetched yet — shouldn't normally render, but just in case
+      return `
+        <div class="ticket-panel">
+          <p class="panel-label mono visually-hidden">${labelFor(kind)}</p>
+          <p class="panel-loading">Pobieram dane…</p>
+        </div>`;
+    }
+
+    if(kind === "opis") return renderOpis(state);
+    if(kind === "zwiastun") return renderZwiastun(state);
+    if(kind === "ocena") return renderOcena(state, movie);
+    return "";
+  }
+
+  function labelFor(kind){
+    return kind === "opis" ? "Opis" : kind === "zwiastun" ? "Zwiastun" : "Ocena";
+  }
+
+  function renderOpis(state){
+    return `
+      <div class="ticket-panel">
+        <p class="panel-label mono visually-hidden">Opis</p>
+        <div class="opis-body">
+          ${state.poster ? `<img class="opis-poster" src="${escapeHtml(state.poster)}" alt="Plakat filmu" loading="lazy">` : ""}
+          <div>
+            ${state.year ? `<p class="opis-year mono">${escapeHtml(state.year)}</p>` : ""}
+            <p class="opis-text">${escapeHtml(state.text)}</p>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderZwiastun(state){
+    if(!state.videos || !state.videos.length){
+      return `
+        <div class="ticket-panel">
+          <p class="panel-label mono visually-hidden">Zwiastun</p>
+          <p class="panel-loading">Nie znaleziono zwiastuna dla tego tytułu w bazie TMDb.</p>
+        </div>`;
+    }
+    return `
+      <div class="ticket-panel">
+        <p class="panel-label mono visually-hidden">Zwiastun</p>
+        <button class="trailer-link" type="button" data-action="pick-trailer">▶ Obejrzyj na YT ↗</button>
+      </div>`;
+  }
+
+  function renderOcena(state, movie){
+    const filmwebQuery = "site:filmweb.pl " + movie.title + (movie.year ? ` ${movie.year}` : "");
+    const filmwebUrl = "https://www.google.com/search?q=" + encodeURIComponent(filmwebQuery);
+    const tmdbBlock = state.average == null
+      ? `<p class="panel-loading">Brak oceny w bazie TMDb dla tego tytułu.</p>`
+      : `<div class="ocena-row">
+          <span class="ocena-score">${state.average.toFixed(1)}</span>
+          <span class="ocena-of mono">/ 10 · TMDb</span>
+        </div>
+        <p class="ocena-count mono">na podstawie ${state.count.toLocaleString("pl-PL")} głosów</p>`;
+
+    return `
+      <div class="ticket-panel">
+        <p class="panel-label mono visually-hidden">Ocena</p>
+        ${tmdbBlock}
+        ${renderImdbBlock(movie)}
+        <div class="filmweb-note">
+          <a class="filmweb-link" href="${filmwebUrl}" target="_blank" rel="noopener">Sprawdź na Filmweb ↗</a>
+        </div>
+      </div>`;
+  }
+
+  function renderImdbBlock(movie){
+    const imdbState = movie.data.imdb;
+
+    if(!getOmdbApiKey()){
+      return `
+        <div class="rating-block">
+          <p class="key-missing">Żeby zobaczyć ocenę IMDb, dodaj klucz API OMDb.
+            <br><button data-action="open-settings" type="button">Dodaj klucz API</button>
+          </p>
+        </div>`;
+    }
+    if(!imdbState || imdbState.loading){
+      return `<div class="rating-block"><p class="panel-loading">Pobieram ocenę IMDb…</p></div>`;
+    }
+    if(imdbState.error){
+      return `
+        <div class="rating-block">
+          <p class="panel-error">${escapeHtml(imdbState.error)}
+            <br><button class="retry" data-action="retry-imdb" type="button">Spróbuj ponownie</button>
+          </p>
+        </div>`;
+    }
+    if(imdbState.rating == null){
+      return `<div class="rating-block"><p class="panel-loading">Brak oceny IMDb dla tego tytułu.</p></div>`;
+    }
+    return `
+      <div class="rating-block">
+        <div class="ocena-row">
+          <span class="ocena-score">${imdbState.rating.toFixed(1)}</span>
+          <span class="ocena-of mono">/ 10 · IMDb</span>
+        </div>
+        ${imdbState.votes ? `<p class="ocena-count mono">na podstawie ${escapeHtml(imdbState.votes)} głosów</p>` : ""}
+      </div>`;
+  }
+
+  // ---------- TMDb fetching ----------
+  function normalizeTitle(s){
+    return (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  async function ensureTmdbId(movie){
+    if(movie.tmdbId) return movie.tmdbId;
+    const key = getApiKey();
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=pl-PL&query=${encodeURIComponent(movie.title)}`;
+    const res = await fetch(url);
+    if(res.status === 401) throw new Error("Nieprawidłowy klucz API TMDb. Sprawdź go w ustawieniach.");
+    if(!res.ok) throw new Error("Nie udało się połączyć z TMDb (spróbuj ponownie).");
+    const json = await res.json();
+    if(!json.results || json.results.length === 0) throw new Error("Nie znaleziono takiego tytułu w bazie TMDb.");
+    // TMDb sorts search results mostly by popularity, not by how closely the
+    // title matches — a newer, more popular sequel can outrank the exact
+    // title typed. Prefer an exact (case/whitespace-insensitive) match on
+    // either the localized or original title before falling back to the
+    // top-ranked result.
+    const target = normalizeTitle(movie.title);
+    const exactMatch = json.results.find(r =>
+      normalizeTitle(r.title) === target || normalizeTitle(r.original_title) === target
+    );
+    movie.tmdbId = (exactMatch || json.results[0]).id;
+    saveMovies();
+    return movie.tmdbId;
+  }
+
+  async function fetchMovieDetails(movie){
+    const key = getApiKey();
+    const id = await ensureTmdbId(movie);
+    const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${encodeURIComponent(key)}&language=pl-PL`);
+    if(!res.ok) throw new Error("Nie udało się pobrać danych filmu.");
+    return res.json();
+  }
+
+  function pickTrailers(results){
+    if(!results || !results.length) return [];
+    const yt = results.filter(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
+    const trailers = yt.filter(v => v.type === "Trailer");
+    const teasers = yt.filter(v => v.type === "Teaser");
+    return [...trailers, ...teasers].map(v => ({
+      key: v.key,
+      name: v.name && v.name.trim() ? v.name : (v.type === "Trailer" ? "Zwiastun" : "Zapowiedź"),
+      type: v.type,
+    }));
+  }
+
+  async function fetchOpis(movie){
+    const details = await fetchMovieDetails(movie);
+    movie.year = details.release_date ? details.release_date.slice(0,4) : (movie.year || null);
+    movie.releaseDate = details.release_date || movie.releaseDate || null;
+    return {
+      text: details.overview && details.overview.trim() ? details.overview : "Brak opisu w bazie TMDb dla tego tytułu.",
+      poster: details.poster_path ? `https://image.tmdb.org/t/p/w200${details.poster_path}` : null,
+      year: details.release_date ? details.release_date.slice(0,4) : null,
+    };
+  }
+
+  async function fetchZwiastun(movie){
+    const key = getApiKey();
+    const id = await ensureTmdbId(movie);
+    let res = await fetch(`https://api.themoviedb.org/3/movie/${id}/videos?api_key=${encodeURIComponent(key)}&language=pl-PL`);
+    if(!res.ok) throw new Error("Nie udało się pobrać zwiastuna.");
+    let json = await res.json();
+    let videos = pickTrailers(json.results);
+    if(!videos.length){
+      res = await fetch(`https://api.themoviedb.org/3/movie/${id}/videos?api_key=${encodeURIComponent(key)}&language=en-US`);
+      if(res.ok){
+        json = await res.json();
+        videos = pickTrailers(json.results);
+      }
+    }
+    return { videos };
+  }
+
+  async function fetchImdb(movie){
+    const omdbKey = getOmdbApiKey();
+    if(!movie.imdbId){
+      const details = await fetchMovieDetails(movie);
+      movie.imdbId = details.imdb_id || null;
+    }
+    if(!movie.imdbId) throw new Error("Nie znaleziono identyfikatora IMDb dla tego tytułu.");
+    const res = await fetch(`https://www.omdbapi.com/?apikey=${encodeURIComponent(omdbKey)}&i=${encodeURIComponent(movie.imdbId)}`);
+    if(!res.ok) throw new Error("Nie udało się połączyć z OMDb (spróbuj ponownie).");
+    const json = await res.json();
+    if(json.Response === "False"){
+      throw new Error(json.Error === "Invalid API key!" ? "Nieprawidłowy klucz API OMDb. Sprawdź go w ustawieniach." : "Nie znaleziono oceny IMDb dla tego tytułu.");
+    }
+    return {
+      rating: (json.imdbRating && json.imdbRating !== "N/A") ? parseFloat(json.imdbRating) : null,
+      votes: (json.imdbVotes && json.imdbVotes !== "N/A") ? json.imdbVotes : null,
+    };
+  }
+
+  async function loadOcenaAndImdb(movie){
+    movie.data.ocena = { loading:true };
+    const omdbKey = getOmdbApiKey();
+    if(omdbKey) movie.data.imdb = { loading:true };
+    render();
+
+    try{
+      const details = await fetchMovieDetails(movie);
+      movie.imdbId = details.imdb_id || movie.imdbId || null;
+      movie.year = details.release_date ? details.release_date.slice(0,4) : (movie.year || null);
+      movie.releaseDate = details.release_date || movie.releaseDate || null;
+      movie.data.ocena = {
+        average: typeof details.vote_average === "number" && details.vote_count > 0 ? details.vote_average : null,
+        count: details.vote_count || 0,
+      };
+    }catch(err){
+      movie.data.ocena = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+    }
+
+    if(omdbKey){
+      try{
+        movie.data.imdb = await fetchImdb(movie);
+      }catch(err){
+        movie.data.imdb = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+      }
+    } else {
+      movie.data.imdb = null;
+    }
+
+    saveMovies();
+    render();
+  }
+
+  async function retryImdb(movie){
+    movie.data.imdb = { loading:true };
+    render();
+    try{
+      movie.data.imdb = await fetchImdb(movie);
+    }catch(err){
+      movie.data.imdb = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+    }
+    saveMovies();
+    render();
+  }
+
+  async function loadPanelData(movie, kind){
+    if(kind === "ocena"){
+      await loadOcenaAndImdb(movie);
+      return;
+    }
+    movie.data[kind] = { loading:true };
+    render();
+    try{
+      let result;
+      if(kind === "opis") result = await fetchOpis(movie);
+      else result = await fetchZwiastun(movie);
+      movie.data[kind] = result;
+    }catch(err){
+      movie.data[kind] = { error: err.message || "Coś poszło nie tak. Spróbuj ponownie." };
+    }
+    saveMovies();
+    render();
+  }
+
+  // ---------- add movie ----------
+  function createMovie(title){
+    return {
+      id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)),
+      title,
+      addedAt: Date.now(),
+      tmdbId: null,
+      imdbId: null,
+      year: null,
+      releaseDate: null,
+      data: { opis:null, zwiastun:null, ocena:null, imdb:null }
+    };
+  }
+  function addMovie(movie){
+    movies.unshift(movie);
+    saveMovies();
+    render();
+  }
+
+  let pendingTitle = null;
+  let pendingResults = [];
+
+  // ---------- events ----------
+  formEl.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const title = inputEl.value.trim();
+    if(!title) return;
+
+    if(!getApiKey()){
+      addMovie(createMovie(title));
+      inputEl.value = "";
+      return;
+    }
+
+    const originalLabel = addBtn.textContent;
+    addBtn.disabled = true;
+    addBtn.textContent = "Szukam…";
+    try{
+      const key = getApiKey();
+      const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=pl-PL&query=${encodeURIComponent(title)}`);
+      if(!res.ok) throw new Error("search_failed");
+      const json = await res.json();
+      openPickModal(title, json.results || []);
+    }catch(err){
+      // wyszukiwanie zawiodło — nie blokuj użytkownika, dodaj wpisany tytuł wprost
+      addMovie(createMovie(title));
+      inputEl.value = "";
+    }finally{
+      addBtn.disabled = false;
+      addBtn.textContent = originalLabel;
+    }
+  });
+
+  function renderSearchResults(results){
+    if(!results.length){
+      searchResultsEl.innerHTML = "";
+      return;
+    }
+    searchResultsEl.innerHTML = results.map(r => {
+      const year = r.release_date ? r.release_date.slice(0,4) : null;
+      const posterHtml = r.poster_path
+        ? `<img class="search-result-poster" src="https://image.tmdb.org/t/p/w92${r.poster_path}" alt="" loading="lazy">`
+        : `<div class="search-result-poster placeholder">?</div>`;
+      const original = (r.original_title && r.original_title !== r.title) ? ` · ${escapeHtml(r.original_title)}` : "";
+      return `
+        <button class="search-result" type="button" data-tmdb-id="${r.id}">
+          ${posterHtml}
+          <span class="search-result-info">
+            <p class="search-result-title">${escapeHtml(r.title || r.original_title || "")}</p>
+            <span class="search-result-meta">${year ? escapeHtml(year) : "rok nieznany"}${original}</span>
+          </span>
+        </button>`;
+    }).join("");
+  }
+
+  function openPickModal(title, results){
+    pendingTitle = title;
+    pendingResults = results.slice(0, 6);
+    pickSubtitle.textContent = pendingResults.length
+      ? `Znalazłem kilka tytułów dla „${title}” — wybierz właściwy:`
+      : `Nie znaleziono wyników dla „${title}” w bazie TMDb.`;
+    addAnywayBtn.textContent = `Dodaj mimo to jako „${title}”`;
+    renderSearchResults(pendingResults);
+    pickBackdrop.hidden = false;
+    const firstResult = searchResultsEl.querySelector(".search-result");
+    (firstResult || addAnywayBtn).focus();
+  }
+
+  function closePickModal(){
+    pickBackdrop.hidden = true;
+    pendingTitle = null;
+    pendingResults = [];
+    inputEl.focus();
+  }
+
+  searchResultsEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".search-result");
+    if(!btn) return;
+    const id = Number(btn.dataset.tmdbId);
+    const result = pendingResults.find(r => r.id === id);
+    if(!result) return;
+
+    const year = result.release_date ? result.release_date.slice(0,4) : null;
+    const movie = createMovie(result.title || result.original_title || pendingTitle);
+    movie.tmdbId = result.id;
+    movie.year = year;
+    movie.releaseDate = result.release_date || null;
+    // dane z wyszukiwania TMDb już zawierają opis i ocenę — od razu je cache'ujemy,
+    // żeby zakładki Opis/Ocena otworzyły się bez dodatkowego pobierania
+    movie.data.opis = {
+      text: result.overview && result.overview.trim() ? result.overview : "Brak opisu w bazie TMDb dla tego tytułu.",
+      poster: result.poster_path ? `https://image.tmdb.org/t/p/w200${result.poster_path}` : null,
+      year,
+    };
+    movie.data.ocena = {
+      average: typeof result.vote_average === "number" && result.vote_count > 0 ? result.vote_average : null,
+      count: result.vote_count || 0,
+    };
+    addMovie(movie);
+    closePickModal();
+    inputEl.value = "";
+  });
+
+  addAnywayBtn.addEventListener("click", () => {
+    if(!pendingTitle) return;
+    addMovie(createMovie(pendingTitle));
+    closePickModal();
+    inputEl.value = "";
+  });
+
+  cancelPickBtn.addEventListener("click", closePickModal);
+  pickBackdrop.addEventListener("click", (e) => { if(e.target === pickBackdrop) closePickModal(); });
+
+  // ---------- pick trailer modal ----------
+  function renderTrailerResults(videos){
+    trailerResultsEl.innerHTML = videos.map(v => {
+      const typeLabel = v.type === "Trailer" ? "Zwiastun" : "Zapowiedź";
+      return `
+        <a class="search-result" href="https://www.youtube.com/watch?v=${encodeURIComponent(v.key)}" target="_blank" rel="noopener">
+          <img class="trailer-thumb" src="https://img.youtube.com/vi/${encodeURIComponent(v.key)}/mqdefault.jpg" alt="" loading="lazy">
+          <span class="search-result-info">
+            <p class="search-result-title">${escapeHtml(v.name)}</p>
+            <span class="search-result-meta">${typeLabel}</span>
+          </span>
+        </a>`;
+    }).join("");
+  }
+
+  function openTrailerPickModal(title, videos){
+    trailerPickSubtitle.textContent = videos.length > 1
+      ? `Kilka wyników dla „${title}” — wybierz, który zwiastun obejrzeć:`
+      : `Zwiastun dla „${title}”:`;
+    renderTrailerResults(videos);
+    trailerBackdrop.hidden = false;
+    const first = trailerResultsEl.querySelector(".search-result");
+    (first || cancelTrailerPickBtn).focus();
+  }
+
+  function closeTrailerPickModal(){
+    trailerBackdrop.hidden = true;
+  }
+
+  trailerResultsEl.addEventListener("click", (e) => {
+    if(e.target.closest(".search-result")) closeTrailerPickModal();
+  });
+  cancelTrailerPickBtn.addEventListener("click", closeTrailerPickModal);
+  trailerBackdrop.addEventListener("click", (e) => { if(e.target === trailerBackdrop) closeTrailerPickModal(); });
+
+  listEl.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    const li = e.target.closest(".ticket-wrap");
+    const action = btn.dataset.action;
+
+    if(action === "open-settings"){ openSettings(); return; }
+
+    if(!li) return;
+    const id = li.dataset.id;
+    const movie = findMovie(id);
+    if(!movie) return;
+
+    if(action === "remove"){
+      openConfirmRemove(movie);
+      return;
+    }
+
+    if(action === "pick-trailer"){
+      const videos = movie.data.zwiastun && movie.data.zwiastun.videos;
+      if(videos && videos.length) openTrailerPickModal(movie.title, videos);
+      return;
+    }
+
+    if(action === "opis" || action === "zwiastun" || action === "ocena"){
+      if(openPanel[id] === action){
+        openPanel[id] = null;
+        render();
+        return;
+      }
+      openPanel[id] = action;
+      if(!getApiKey()){
+        render();
+        return;
+      }
+      const needsFetch = action === "ocena"
+        ? (!movie.data.ocena || movie.data.ocena.error || (getOmdbApiKey() && (!movie.data.imdb || movie.data.imdb.error)))
+        : (!movie.data[action] || movie.data[action].error);
+      if(needsFetch){
+        loadPanelData(movie, action);
+      } else {
+        render();
+      }
+      return;
+    }
+
+    if(action === "retry-imdb"){
+      retryImdb(movie);
+      return;
+    }
+
+    if(action && action.startsWith("retry-")){
+      const kind = action.replace("retry-", "");
+      loadPanelData(movie, kind);
+      return;
+    }
+  });
+
+  // ---------- settings modal ----------
+  function openSettings(){
+    apiKeyInput.value = getApiKey();
+    omdbKeyInput.value = getOmdbApiKey();
+    saveHint.textContent = "";
+    settingsBackdrop.hidden = false;
+    apiKeyInput.focus();
+  }
+  function closeSettings(){ settingsBackdrop.hidden = true; }
+
+  settingsBtn.addEventListener("click", openSettings);
+  closeSettingsBtn.addEventListener("click", closeSettings);
+  settingsBackdrop.addEventListener("click", (e) => { if(e.target === settingsBackdrop) closeSettings(); });
+
+  saveSettingsBtn.addEventListener("click", () => {
+    setApiKey(apiKeyInput.value);
+    setOmdbApiKey(omdbKeyInput.value);
+    saveHint.textContent = "Klucze zapisane.";
+    render();
+    setTimeout(() => { if(!settingsBackdrop.hidden) closeSettings(); }, 500);
+  });
+
+  // ---------- confirm delete modal ----------
+  let pendingRemoveId = null;
+  let removeTriggerEl = null;
+
+  function openConfirmRemove(movie){
+    pendingRemoveId = movie.id;
+    removeTriggerEl = document.activeElement;
+    confirmText.textContent = `„${movie.title}” zniknie z Twojej listy na stałe. Tej operacji nie da się cofnąć.`;
+    confirmBackdrop.hidden = false;
+    confirmRemoveBtn.focus();
+  }
+  function closeConfirmRemove(){
+    confirmBackdrop.hidden = true;
+    pendingRemoveId = null;
+    if(removeTriggerEl && document.body.contains(removeTriggerEl)) removeTriggerEl.focus();
+    removeTriggerEl = null;
+  }
+
+  cancelRemoveBtn.addEventListener("click", closeConfirmRemove);
+  confirmBackdrop.addEventListener("click", (e) => { if(e.target === confirmBackdrop) closeConfirmRemove(); });
+  confirmRemoveBtn.addEventListener("click", () => {
+    if(!pendingRemoveId) return;
+    movies = movies.filter(m => m.id !== pendingRemoveId);
+    delete openPanel[pendingRemoveId];
+    saveMovies();
+    pendingRemoveId = null;
+    removeTriggerEl = null;
+    confirmBackdrop.hidden = true;
+    render();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if(e.key !== "Escape") return;
+    if(!confirmBackdrop.hidden) closeConfirmRemove();
+    else if(!pickBackdrop.hidden) closePickModal();
+    else if(!trailerBackdrop.hidden) closeTrailerPickModal();
+    else if(!settingsBackdrop.hidden) closeSettings();
+  });
+
+  // ---------- theme ----------
+  function getPreferredTheme(){
+    const stored = localStorage.getItem(THEME_STORAGE);
+    if(stored === "light" || stored === "dark") return stored;
+    return (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+  }
+  function applyTheme(theme){
+    document.documentElement.setAttribute("data-theme", theme);
+    themeBtn.textContent = theme === "light" ? "☾" : "☀";
+    themeBtn.setAttribute("aria-label", theme === "light" ? "Przełącz na tryb ciemny" : "Przełącz na tryb jasny");
+    localStorage.setItem(THEME_STORAGE, theme);
+    const meta = document.getElementById("themeColorMeta");
+    if(meta) meta.setAttribute("content", theme === "light" ? "#ece3d3" : "#10141d");
+  }
+  let currentTheme = getPreferredTheme();
+  applyTheme(currentTheme);
+  themeBtn.addEventListener("click", () => {
+    currentTheme = currentTheme === "light" ? "dark" : "light";
+    applyTheme(currentTheme);
+  });
+
+  // ---------- init ----------
+  render();
+})();
+</script>
+</body>
+</html>
