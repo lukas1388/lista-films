@@ -296,6 +296,13 @@
     width:3px; height:3px; border-radius:50%; background:currentColor;
   }
   body.reordering{ user-select:none; -webkit-user-select:none; }
+  .drag-placeholder{
+    box-sizing:border-box;
+    border:2px dashed var(--gold-dim);
+    border-radius:var(--radius);
+    background:var(--surface-hi);
+    opacity:0.6;
+  }
 
   .ticket-info{
     position:relative;
@@ -1337,6 +1344,10 @@
   }
 
   let dragCtx = null;
+  let autoScrollRAF = null;
+  const EDGE_ZONE = 70;
+  const MAX_SCROLL_SPEED = 16;
+  const DRAG_THRESHOLD = 6; // px — samo kliknięcie/dotknięcie nie ma jeszcze żadnego efektu
 
   listEl.addEventListener("pointerdown", (e) => {
     const handle = e.target.closest(".drag-handle");
@@ -1345,18 +1356,53 @@
     if(!li) return;
     e.preventDefault();
     handle.setPointerCapture(e.pointerId);
-    const rect = li.getBoundingClientRect();
     dragCtx = {
       pointerId: e.pointerId,
       id: li.dataset.id,
       li,
-      grabOffset: e.clientY - rect.top,
-      naturalTop: rect.top,
-      cardHeight: rect.height,
+      startY: e.clientY,
+      lastPointerY: e.clientY,
+      activated: false,
+      grabOffset: 0,
+      cardHeight: 0,
     };
+  });
+
+  // Dopiero tutaj (po przekroczeniu progu ruchu) karta faktycznie zaczyna być
+  // przeciągana: staje się position:fixed — pozycjonowana względem okna, a nie
+  // strony, dzięki czemu jej wizualne przesunięcie nie powiększa wysokości
+  // dokumentu (co przy zwykłym transform powodowało "nieskończone" doklejanie
+  // się miejsca do przewijania w dół).
+  //
+  // Dodatkowo: samo zniknięcie karty z normalnego układu (position:fixed)
+  // powoduje, że sąsiednie karty NATYCHMIAST przesuwają się o całą jej
+  // wysokość, żeby wypełnić puste miejsce — a to przesunięcie, samo w sobie,
+  // wygląda jak przekroczenie progu zamiany, więc wystarczał ułamek ruchu, żeby
+  // "przypadkiem" zaliczyć zamianę. Dlatego w miejsce przeciąganej karty
+  // wstawiamy placeholder o tej samej wysokości — to ON rezerwuje miejsce i to
+  // JEGO przesuwamy po liście w trakcie przeciągania, więc sąsiedzi poruszają
+  // się dopiero, gdy naprawdę tam dojedziesz.
+  function activateDrag(){
+    const li = dragCtx.li;
+    const rect = li.getBoundingClientRect();
+    dragCtx.grabOffset = dragCtx.startY - rect.top;
+    dragCtx.cardHeight = rect.height;
+
+    const placeholder = document.createElement("li");
+    placeholder.className = "drag-placeholder";
+    placeholder.style.height = rect.height + "px";
+    li.parentNode.insertBefore(placeholder, li);
+    dragCtx.placeholder = placeholder;
+
+    li.style.position = "fixed";
+    li.style.left = rect.left + "px";
+    li.style.width = rect.width + "px";
     li.classList.add("dragging");
     document.body.classList.add("reordering");
-  });
+    dragCtx.activated = true;
+    updateDragPosition(dragCtx.lastPointerY);
+    if(!autoScrollRAF) autoScrollRAF = requestAnimationFrame(autoScrollStep);
+  }
 
   // Zwraca indeks (wśród pozostałych kart, w kolejności DOM), w który powinna
   // trafić przeciągana karta. Liczone od środka SAMEJ przeciąganej karty (nie
@@ -1372,10 +1418,16 @@
     return { idx, others };
   }
 
-  document.addEventListener("pointermove", (e) => {
-    if(!dragCtx || e.pointerId !== dragCtx.pointerId) return;
-
-    const desiredTop = e.clientY - dragCtx.grabOffset;
+  // Wspólna logika aktualizacji pozycji przeciąganej karty — wywoływana zarówno
+  // przy ruchu wskaźnika, jak i co klatkę podczas auto-scrolla (gdy wskaźnik
+  // stoi w miejscu przy krawędzi okna, ale strona i tak się przewija). Karta
+  // jest position:fixed, więc jej "top" to wprost pozycja względem okna —
+  // żadnej dodatkowej matematyki kompensującej scroll nie trzeba już robić.
+  // Przestawiany jest placeholder — realna karta zawsze tylko "unosi się" nad
+  // listą, podążając za wskaźnikiem.
+  function updateDragPosition(pointerY){
+    if(!dragCtx || !dragCtx.activated) return;
+    const desiredTop = pointerY - dragCtx.grabOffset;
     const centerY = desiredTop + dragCtx.cardHeight / 2;
     const currentIndex = movies.findIndex(m => m.id === dragCtx.id);
     const { idx: targetIndex, others } = computeTargetIndex(centerY, dragCtx.li);
@@ -1389,9 +1441,9 @@
       movies.splice(targetIndex, 0, item);
 
       if(targetIndex >= others.length){
-        listEl.appendChild(dragCtx.li);
+        listEl.appendChild(dragCtx.placeholder);
       } else {
-        listEl.insertBefore(dragCtx.li, others[targetIndex]);
+        listEl.insertBefore(dragCtx.placeholder, others[targetIndex]);
       }
 
       // FLIP: karty, które faktycznie zmieniły pozycję, "cofamy" wizualnie do
@@ -1410,22 +1462,61 @@
           el.style.transform = "";
         }
       });
-
-      dragCtx.li.style.transform = "";
-      dragCtx.naturalTop = dragCtx.li.getBoundingClientRect().top;
     }
 
-    dragCtx.li.style.transform = `translateY(${desiredTop - dragCtx.naturalTop}px)`;
+    dragCtx.li.style.top = desiredTop + "px";
+  }
+
+  // Auto-scroll: gdy wskaźnik jest blisko góry/dołu okna, przewija stronę,
+  // dopóki tam zostaje — im bliżej samej krawędzi, tym szybciej. Ponieważ
+  // przeciągana karta jest position:fixed, sama nie musi być tu w ogóle
+  // przeliczana względem scrolla — trzeba tylko sprawdzić, czy któraś z
+  // pozostałych kart nie zmieniła w międzyczasie pozycji względem wskaźnika.
+  function autoScrollStep(){
+    if(!dragCtx){ autoScrollRAF = null; return; }
+    const vh = window.innerHeight;
+    const y = dragCtx.lastPointerY;
+    let speed = 0;
+    if(y < EDGE_ZONE){
+      speed = -Math.ceil(((EDGE_ZONE - y) / EDGE_ZONE) * MAX_SCROLL_SPEED);
+    } else if(y > vh - EDGE_ZONE){
+      speed = Math.ceil(((y - (vh - EDGE_ZONE)) / EDGE_ZONE) * MAX_SCROLL_SPEED);
+    }
+    if(speed !== 0){
+      window.scrollBy(0, speed);
+      updateDragPosition(dragCtx.lastPointerY);
+    }
+    autoScrollRAF = requestAnimationFrame(autoScrollStep);
+  }
+
+  document.addEventListener("pointermove", (e) => {
+    if(!dragCtx || e.pointerId !== dragCtx.pointerId) return;
+    dragCtx.lastPointerY = e.clientY;
+
+    if(!dragCtx.activated){
+      if(Math.abs(e.clientY - dragCtx.startY) < DRAG_THRESHOLD) return;
+      activateDrag();
+      return;
+    }
+
+    updateDragPosition(e.clientY);
   });
 
   function endDrag(e){
     if(!dragCtx || e.pointerId !== dragCtx.pointerId) return;
-    const { li } = dragCtx;
+    const { li, activated, placeholder } = dragCtx;
     dragCtx = null;
+    if(autoScrollRAF){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF = null; }
 
-    li.style.transform = "";
+    if(!activated) return; // zwykłe kliknięcie/dotknięcie bez ruchu — nic się nie zmieniło
+
+    li.style.position = "";
+    li.style.left = "";
+    li.style.width = "";
+    li.style.top = "";
     li.classList.remove("dragging");
     document.body.classList.remove("reordering");
+    if(placeholder && placeholder.parentNode) placeholder.parentNode.removeChild(placeholder);
 
     saveMovies();
     render();
