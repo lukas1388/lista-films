@@ -333,6 +333,7 @@
     align-items:center;
     justify-content:space-between;
     gap:0.5rem;
+    flex:1;
     transition: background 0.15s, color 0.15s;
     border-bottom:1px solid var(--border);
   }
@@ -508,7 +509,7 @@
       width:100%; flex-direction:row; border-left:none; border-top:1px dashed var(--border-strong);
     }
     .ticket-actions::before, .ticket-actions::after{ display:none; }
-    .action-btn{ flex:1; justify-content:center; padding:0.8rem 0.5rem; border-bottom:none; border-right:1px solid var(--border); }
+    .action-btn{ justify-content:center; padding:0.8rem 0.5rem; border-bottom:none; border-right:1px solid var(--border); }
     .ticket-actions .action-btn:last-child{ border-right:none; }
     .opis-body{ flex-direction:column; }
 
@@ -700,6 +701,10 @@
     if(movie.year) return movie.year;
     return "nieznana";
   }
+  function movieGenreLabel(movie){
+    if(movie.genres && movie.genres.length) return movie.genres.join(", ");
+    return "nieznany";
+  }
   function findMovie(id){ return movies.find(m => m.id === id); }
 
   // ---------- rendering ----------
@@ -726,6 +731,7 @@
             <button class="ticket-remove" data-action="remove" aria-label="Usuń ${escapeHtml(movie.title)} z listy" title="Usuń z listy">✕</button>
             <p class="ticket-title">${escapeHtml(movie.title)}</p>
             <p class="ticket-meta mono">premiera: ${movieReleaseLabel(movie)}</p>
+            <p class="ticket-meta mono">gatunki: ${movieGenreLabel(movie)}</p>
           </div>
           <div class="ticket-actions">
             <button class="action-btn ${active==='opis'?'open':''}" data-action="opis" type="button">
@@ -895,6 +901,28 @@
     return err.message || fallback;
   }
 
+  // Endpoint wyszukiwania (search/movie) zwraca gatunki tylko jako numeryczne genre_ids,
+  // bez nazw. Nazwy trzeba pobrać osobno z listy gatunków — raz, potem z pamięci podręcznej,
+  // żeby dodawanie kolejnych filmów nie generowało dodatkowych zapytań.
+  let genreMapCache = null;
+  let genreMapPromise = null;
+  function fetchGenreMap(){
+    if(genreMapCache) return Promise.resolve(genreMapCache);
+    if(genreMapPromise) return genreMapPromise;
+    const key = getApiKey();
+    genreMapPromise = fetch(`https://api.themoviedb.org/3/genre/movie/list?api_key=${encodeURIComponent(key)}&language=pl-PL`)
+      .then(res => { if(!res.ok) throw new Error("genre_map_failed"); return res.json(); })
+      .then(json => {
+        const map = {};
+        (json.genres || []).forEach(g => { map[g.id] = g.name; });
+        genreMapCache = map;
+        genreMapPromise = null;
+        return map;
+      })
+      .catch(err => { genreMapPromise = null; throw err; });
+    return genreMapPromise;
+  }
+
   async function ensureTmdbId(movie){
     if(movie.tmdbId) return movie.tmdbId;
     const key = getApiKey();
@@ -938,10 +966,17 @@
     }));
   }
 
+  function applyGenres(movie, details){
+    if(details.genres && details.genres.length){
+      movie.genres = details.genres.map(g => g.name).filter(Boolean);
+    }
+  }
+
   async function fetchOpis(movie){
     const details = await fetchMovieDetails(movie);
     movie.year = details.release_date ? details.release_date.slice(0,4) : (movie.year || null);
     movie.releaseDate = details.release_date || movie.releaseDate || null;
+    applyGenres(movie, details);
     return {
       text: details.overview && details.overview.trim() ? details.overview : "Brak opisu w bazie TMDb dla tego tytułu.",
       poster: details.poster_path ? `https://image.tmdb.org/t/p/w200${details.poster_path}` : null,
@@ -996,6 +1031,7 @@
       movie.imdbId = details.imdb_id || movie.imdbId || null;
       movie.year = details.release_date ? details.release_date.slice(0,4) : (movie.year || null);
       movie.releaseDate = details.release_date || movie.releaseDate || null;
+      applyGenres(movie, details);
       movie.data.ocena = {
         average: typeof details.vote_average === "number" && details.vote_count > 0 ? details.vote_average : null,
         count: details.vote_count || 0,
@@ -1059,6 +1095,7 @@
       imdbId: null,
       year: null,
       releaseDate: null,
+      genres: null,
       data: { opis:null, zwiastun:null, ocena:null, imdb:null }
     };
   }
@@ -1070,6 +1107,7 @@
 
   let pendingTitle = null;
   let pendingResults = [];
+  let pendingGenreMap = null;
 
   // ---------- events ----------
   formEl.addEventListener("submit", async (e) => {
@@ -1091,10 +1129,13 @@
     addLabelEl.textContent = "Szukam…";
     try{
       const key = getApiKey();
-      const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=pl-PL&query=${encodeURIComponent(title)}`);
+      const [res, genreMap] = await Promise.all([
+        fetch(`https://api.themoviedb.org/3/search/movie?api_key=${encodeURIComponent(key)}&language=pl-PL&query=${encodeURIComponent(title)}`),
+        fetchGenreMap().catch(() => null)
+      ]);
       if(!res.ok) throw new Error("search_failed");
       const json = await res.json();
-      openPickModal(title, json.results || []);
+      openPickModal(title, json.results || [], genreMap);
     }catch(err){
       // wyszukiwanie zawiodło — nie blokuj użytkownika, dodaj wpisany tytuł wprost,
       // ale pokaż dlaczego, zamiast cicho maskować problem
@@ -1131,9 +1172,10 @@
     }).join("");
   }
 
-  function openPickModal(title, results){
+  function openPickModal(title, results, genreMap){
     pendingTitle = title;
     pendingResults = results.slice(0, 6);
+    pendingGenreMap = genreMap || null;
     pickSubtitle.textContent = pendingResults.length
       ? `Znalazłem kilka tytułów dla „${title}” — wybierz właściwy:`
       : `Nie znaleziono wyników dla „${title}” w bazie TMDb.`;
@@ -1148,6 +1190,7 @@
     pickBackdrop.hidden = true;
     pendingTitle = null;
     pendingResults = [];
+    pendingGenreMap = null;
     if(refocus) inputEl.focus();
   }
 
@@ -1163,6 +1206,10 @@
     movie.tmdbId = result.id;
     movie.year = year;
     movie.releaseDate = result.release_date || null;
+    if(pendingGenreMap && result.genre_ids && result.genre_ids.length){
+      const names = result.genre_ids.map(gid => pendingGenreMap[gid]).filter(Boolean);
+      if(names.length) movie.genres = names;
+    }
     // dane z wyszukiwania TMDb już zawierają opis i ocenę — od razu je cache'ujemy,
     // żeby zakładki Opis/Ocena otworzyły się bez dodatkowego pobierania
     movie.data.opis = {
