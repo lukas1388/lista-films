@@ -254,10 +254,48 @@
     box-shadow:var(--shadow);
     overflow:hidden;
   }
+  .ticket-wrap.dragging{
+    position:relative;
+    z-index:40;
+    box-shadow:0 20px 38px -14px rgba(0,0,0,0.55);
+    outline:2px dashed var(--gold);
+    outline-offset:2px;
+  }
   .ticket{
     position:relative;
     display:flex;
   }
+
+  .drag-handle{
+    flex:none;
+    width:32px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:none;
+    border:none;
+    border-right:1px dashed var(--border);
+    color:var(--text-faint);
+    cursor:grab;
+    touch-action:none;
+    padding:0;
+    outline:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .drag-handle:hover{ color:var(--text); background:var(--surface-hi); }
+  .drag-handle:active{ cursor:grabbing; }
+  .drag-handle:focus{ outline:none; }
+  .drag-handle:focus-visible{ outline:none; background:var(--surface-hi); color:var(--text); }
+  .drag-handle .dots{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    grid-template-rows:repeat(3,1fr);
+    gap:3px;
+  }
+  .drag-handle .dots span{
+    width:3px; height:3px; border-radius:50%; background:currentColor;
+  }
+  body.reordering{ user-select:none; -webkit-user-select:none; }
 
   .ticket-info{
     position:relative;
@@ -505,6 +543,14 @@
 
   @media (max-width: 480px){
     .ticket{ flex-direction:column; }
+    .drag-handle{
+      width:100%; height:22px;
+      border-right:none; border-bottom:1px dashed var(--border);
+    }
+    .drag-handle .dots{
+      grid-template-columns:repeat(6,1fr);
+      grid-template-rows:1fr;
+    }
     .ticket-actions{
       width:100%; flex-direction:row; border-left:none; border-top:1px dashed var(--border-strong);
     }
@@ -707,6 +753,17 @@
   }
   function findMovie(id){ return movies.find(m => m.id === id); }
 
+  function moveMovie(id, delta){
+    const idx = movies.findIndex(m => m.id === id);
+    if(idx === -1) return;
+    const target = idx + delta;
+    if(target < 0 || target >= movies.length) return;
+    const [item] = movies.splice(idx, 1);
+    movies.splice(target, 0, item);
+    saveMovies();
+    render();
+  }
+
   // ---------- rendering ----------
   function render(){
     if(movies.length === 0){
@@ -727,6 +784,9 @@
     return `
       <li class="ticket-wrap" data-id="${movie.id}">
         <div class="ticket">
+          <button class="drag-handle" type="button" aria-label="Zmień kolejność: „${escapeHtml(movie.title)}”. Przeciągnij albo użyj strzałek góra/dół." title="Przeciągnij, aby zmienić kolejność">
+            <span class="dots"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+          </button>
           <div class="ticket-info">
             <button class="ticket-remove" data-action="remove" aria-label="Usuń ${escapeHtml(movie.title)} z listy" title="Usuń z listy">✕</button>
             <p class="ticket-title">${escapeHtml(movie.title)}</p>
@@ -1270,6 +1330,123 @@
   });
   cancelTrailerPickBtn.addEventListener("click", closeTrailerPickModal);
   trailerBackdrop.addEventListener("click", (e) => { if(e.target === trailerBackdrop) closeTrailerPickModal(); });
+
+  // ---------- zmiana kolejności (drag & drop + strzałki) ----------
+  function getTicketWraps(){
+    return Array.from(listEl.querySelectorAll(".ticket-wrap"));
+  }
+
+  let dragCtx = null;
+
+  listEl.addEventListener("pointerdown", (e) => {
+    const handle = e.target.closest(".drag-handle");
+    if(!handle) return;
+    const li = handle.closest(".ticket-wrap");
+    if(!li) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    const rect = li.getBoundingClientRect();
+    dragCtx = {
+      pointerId: e.pointerId,
+      id: li.dataset.id,
+      li,
+      grabOffset: e.clientY - rect.top,
+      naturalTop: rect.top,
+      cardHeight: rect.height,
+    };
+    li.classList.add("dragging");
+    document.body.classList.add("reordering");
+  });
+
+  // Zwraca indeks (wśród pozostałych kart, w kolejności DOM), w który powinna
+  // trafić przeciągana karta. Liczone od środka SAMEJ przeciąganej karty (nie
+  // od surowej pozycji kursora), żeby próg zamiany był proporcjonalny bez
+  // względu na to, gdzie akurat złapano uchwyt.
+  function computeTargetIndex(centerY, excludeLi){
+    const others = getTicketWraps().filter(el => el !== excludeLi);
+    let idx = others.length;
+    for(let i = 0; i < others.length; i++){
+      const rect = others[i].getBoundingClientRect();
+      if(centerY < rect.top + rect.height / 2){ idx = i; break; }
+    }
+    return { idx, others };
+  }
+
+  document.addEventListener("pointermove", (e) => {
+    if(!dragCtx || e.pointerId !== dragCtx.pointerId) return;
+
+    const desiredTop = e.clientY - dragCtx.grabOffset;
+    const centerY = desiredTop + dragCtx.cardHeight / 2;
+    const currentIndex = movies.findIndex(m => m.id === dragCtx.id);
+    const { idx: targetIndex, others } = computeTargetIndex(centerY, dragCtx.li);
+
+    if(currentIndex !== -1 && targetIndex !== currentIndex){
+      // FLIP: zapamiętaj pozycje kart PRZED przestawieniem
+      const firstRects = new Map();
+      others.forEach(el => firstRects.set(el, el.getBoundingClientRect()));
+
+      const [item] = movies.splice(currentIndex, 1);
+      movies.splice(targetIndex, 0, item);
+
+      if(targetIndex >= others.length){
+        listEl.appendChild(dragCtx.li);
+      } else {
+        listEl.insertBefore(dragCtx.li, others[targetIndex]);
+      }
+
+      // FLIP: karty, które faktycznie zmieniły pozycję, "cofamy" wizualnie do
+      // starego miejsca bez animacji, po czym w tej samej klatce puszczamy je
+      // z płynnym przejściem do nowego miejsca — stąd widoczne przesunięcie
+      // zamiast natychmiastowego skoku.
+      others.forEach(el => {
+        const first = firstRects.get(el);
+        const last = el.getBoundingClientRect();
+        const dy = first.top - last.top;
+        if(dy){
+          el.style.transition = "none";
+          el.style.transform = `translateY(${dy}px)`;
+          el.getBoundingClientRect(); // wymuszenie przeliczenia layoutu
+          el.style.transition = "transform 0.22s ease";
+          el.style.transform = "";
+        }
+      });
+
+      dragCtx.li.style.transform = "";
+      dragCtx.naturalTop = dragCtx.li.getBoundingClientRect().top;
+    }
+
+    dragCtx.li.style.transform = `translateY(${desiredTop - dragCtx.naturalTop}px)`;
+  });
+
+  function endDrag(e){
+    if(!dragCtx || e.pointerId !== dragCtx.pointerId) return;
+    const { li } = dragCtx;
+    dragCtx = null;
+
+    li.style.transform = "";
+    li.classList.remove("dragging");
+    document.body.classList.remove("reordering");
+
+    saveMovies();
+    render();
+  }
+  document.addEventListener("pointerup", endDrag);
+  document.addEventListener("pointercancel", endDrag);
+
+  listEl.addEventListener("keydown", (e) => {
+    if(e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+    const handle = e.target.closest(".drag-handle");
+    if(!handle) return;
+    const li = handle.closest(".ticket-wrap");
+    if(!li) return;
+    e.preventDefault();
+    const id = li.dataset.id;
+    moveMovie(id, e.key === "ArrowUp" ? -1 : 1);
+    requestAnimationFrame(() => {
+      const newHandle = listEl.querySelector(`.ticket-wrap[data-id="${CSS.escape(id)}"] .drag-handle`);
+      if(newHandle) newHandle.focus();
+    });
+  });
 
   listEl.addEventListener("click", (e) => {
     const btn = e.target.closest("button");
