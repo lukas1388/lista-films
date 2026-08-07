@@ -552,6 +552,17 @@
   .search-fallback:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
 
   /* ---------- premiery i zapowiedzi ---------- */
+  .modal.premieres-modal{
+    display:flex;
+    flex-direction:column;
+    padding:0;
+    overflow:hidden;
+  }
+  .premieres-fixed{
+    flex:none;
+    padding:1.6rem 1.6rem 1.1rem;
+    border-bottom:1px solid var(--border);
+  }
   .premieres-head{
     display:flex; align-items:flex-start; justify-content:space-between;
     gap:1rem; margin-bottom:1.1rem;
@@ -561,7 +572,7 @@
     letter-spacing:0.02em; margin:0.15rem 0 0;
   }
   .premieres-controls{
-    display:flex; gap:0.6rem; margin-bottom:1.3rem; flex-wrap:wrap;
+    display:flex; gap:0.6rem; flex-wrap:wrap;
   }
   .premieres-select{
     background:var(--bg-soft); border:1px solid var(--border-strong); color:var(--text);
@@ -569,7 +580,11 @@
     font-size:0.9rem; cursor:pointer; flex:1; min-width:120px;
   }
   .premieres-select:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
-  .premieres-body{ min-height:120px; }
+  .premieres-body{
+    flex:1; min-height:0;
+    overflow-y:auto;
+    padding:1.1rem 1.6rem 1.6rem;
+  }
   .premieres-grid{
     display:grid;
     grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
@@ -616,6 +631,8 @@
       max-height:calc(100dvh - 1.6rem);
       padding:1.25rem;
     }
+    .premieres-fixed{ padding:1.25rem 1.25rem 1rem; }
+    .premieres-body{ padding:1rem 1.25rem 1.25rem; }
     .premieres-grid{
       grid-template-columns:repeat(auto-fill, minmax(126px, 1fr));
       gap:0.9rem;
@@ -730,17 +747,19 @@
 
   <!-- Premiery i zapowiedzi -->
   <div class="modal-backdrop" id="premieresBackdrop" hidden>
-    <div class="modal modal-xl" role="dialog" aria-modal="true" aria-labelledby="premieresTitle">
-      <div class="premieres-head">
-        <div>
-          <p class="eyebrow mono">Kino w Polsce</p>
-          <h2 id="premieresTitle">Premiery i zapowiedzi</h2>
+    <div class="modal modal-xl premieres-modal" role="dialog" aria-modal="true" aria-labelledby="premieresTitle">
+      <div class="premieres-fixed">
+        <div class="premieres-head">
+          <div>
+            <p class="eyebrow mono">Kino w Polsce</p>
+            <h2 id="premieresTitle">Premiery i zapowiedzi</h2>
+          </div>
+          <button class="icon-btn" id="closePremieres" type="button" aria-label="Zamknij">✕</button>
         </div>
-        <button class="icon-btn" id="closePremieres" type="button" aria-label="Zamknij">✕</button>
-      </div>
-      <div class="premieres-controls">
-        <select id="premieresMonthSelect" class="premieres-select" aria-label="Miesiąc"></select>
-        <select id="premieresYearSelect" class="premieres-select" aria-label="Rok"></select>
+        <div class="premieres-controls">
+          <select id="premieresMonthSelect" class="premieres-select" aria-label="Miesiąc"></select>
+          <select id="premieresYearSelect" class="premieres-select" aria-label="Rok"></select>
+        </div>
       </div>
       <div class="premieres-body" id="premieresBody"></div>
     </div>
