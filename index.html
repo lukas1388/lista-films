@@ -476,6 +476,7 @@
     max-height:calc(100vh - 2.4rem); overflow-y:auto;
   }
   .modal.modal-wide{ max-width:480px; }
+  .modal.modal-xl{ max-width:920px; }
   .modal h2{
     font-family:'Bebas Neue', sans-serif; font-weight:400; font-size:1.5rem;
     letter-spacing:0.02em; margin:0 0 0.3rem;
@@ -548,6 +549,61 @@
   .search-fallback:hover{ border-color:var(--gold-dim); color:var(--text); }
   .search-fallback:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
 
+  /* ---------- premiery i zapowiedzi ---------- */
+  .premieres-head{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:1rem; margin-bottom:1.1rem;
+  }
+  .premieres-head h2{
+    font-family:'Bebas Neue', sans-serif; font-weight:400; font-size:1.7rem;
+    letter-spacing:0.02em; margin:0.15rem 0 0;
+  }
+  .premieres-controls{
+    display:flex; gap:0.6rem; margin-bottom:1.3rem; flex-wrap:wrap;
+  }
+  .premieres-select{
+    background:var(--bg-soft); border:1px solid var(--border-strong); color:var(--text);
+    padding:0.6rem 0.7rem; border-radius:7px; font-family:'JetBrains Mono', monospace;
+    font-size:0.9rem; cursor:pointer; flex:1; min-width:120px;
+  }
+  .premieres-select:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+  .premieres-body{ min-height:120px; }
+  .premieres-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:1rem;
+  }
+  .premiere-card{
+    display:flex; flex-direction:column;
+    background:var(--bg-soft); border:1px solid var(--border); border-radius:8px;
+    overflow:hidden;
+  }
+  .premiere-poster{
+    width:100%; aspect-ratio:2/3; object-fit:cover; display:block; background:var(--surface);
+  }
+  .premiere-poster.placeholder{
+    display:flex; align-items:center; justify-content:center;
+    color:var(--text-faint); font-size:1.6rem; font-family:'Bebas Neue', sans-serif;
+  }
+  .premiere-info{ padding:0.65rem 0.7rem; display:flex; flex-direction:column; gap:0.3rem; flex:1; }
+  .premiere-title{
+    font-family:'Bebas Neue', sans-serif; font-size:1.05rem; letter-spacing:0.01em;
+    line-height:1.15; margin:0; word-break:break-word;
+  }
+  .premiere-meta{
+    font-family:'JetBrains Mono', monospace; font-size:0.68rem; color:var(--text-faint);
+    letter-spacing:0.02em; margin:0;
+  }
+  .premiere-add-btn{
+    margin-top:auto; padding-top:0.6rem;
+    width:100%; text-align:center; justify-content:center;
+    font-size:0.72rem; padding:0.55rem 0.6rem;
+  }
+  .premieres-more{
+    display:block; width:100%; margin-top:1.3rem;
+    padding:0.7rem; text-align:center;
+  }
+
   @media (max-width: 480px){
     .ticket{ flex-direction:column; }
     .drag-handle{
@@ -598,6 +654,7 @@
         </div>
       </div>
       <div class="head-actions">
+        <button class="icon-btn" id="premieresBtn" type="button" aria-label="Premiery i zapowiedzi filmów" title="Premiery i zapowiedzi">▦</button>
         <button class="icon-btn" id="themeBtn" type="button" aria-label="Przełącz tryb jasny/ciemny">☀</button>
         <button class="icon-btn" id="settingsBtn" type="button" aria-label="Ustawienia — klucz API">⚙</button>
       </div>
@@ -652,6 +709,24 @@
     </div>
   </div>
 
+  <!-- Premiery i zapowiedzi -->
+  <div class="modal-backdrop" id="premieresBackdrop" hidden>
+    <div class="modal modal-xl" role="dialog" aria-modal="true" aria-labelledby="premieresTitle">
+      <div class="premieres-head">
+        <div>
+          <p class="eyebrow mono">Kino w Polsce</p>
+          <h2 id="premieresTitle">Premiery i zapowiedzi</h2>
+        </div>
+        <button class="icon-btn" id="closePremieres" type="button" aria-label="Zamknij">✕</button>
+      </div>
+      <div class="premieres-controls">
+        <select id="premieresMonthSelect" class="premieres-select" aria-label="Miesiąc"></select>
+        <select id="premieresYearSelect" class="premieres-select" aria-label="Rok"></select>
+      </div>
+      <div class="premieres-body" id="premieresBody"></div>
+    </div>
+  </div>
+
   <!-- Settings modal -->
   <div class="modal-backdrop" id="settingsBackdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -684,12 +759,19 @@
   const API_KEY_STORAGE = "watchlist.tmdbApiKey.v1";
   const OMDB_API_KEY_STORAGE = "watchlist.omdbApiKey.v1";
   const THEME_STORAGE = "watchlist.theme.v1";
+  const PREMIERES_VIEW_STORAGE = "watchlist.premieresView.v1";
 
   const listEl = document.getElementById("movieList");
   const formEl = document.getElementById("addForm");
   const inputEl = document.getElementById("titleInput");
   const addBtn = formEl.querySelector('button[type="submit"]');
   const addErrorEl = document.getElementById("addError");
+  const premieresBtn = document.getElementById("premieresBtn");
+  const premieresBackdrop = document.getElementById("premieresBackdrop");
+  const closePremieresBtn = document.getElementById("closePremieres");
+  const premieresMonthSelect = document.getElementById("premieresMonthSelect");
+  const premieresYearSelect = document.getElementById("premieresYearSelect");
+  const premieresBodyEl = document.getElementById("premieresBody");
   const themeBtn = document.getElementById("themeBtn");
   const settingsBtn = document.getElementById("settingsBtn");
   const settingsBackdrop = document.getElementById("settingsBackdrop");
@@ -989,6 +1071,208 @@
       .catch(err => { genreMapPromise = null; throw err; });
     return genreMapPromise;
   }
+
+  // ---------- premiery i zapowiedzi ----------
+  const MONTH_NAMES = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+
+  function populatePremieresSelects(){
+    if(premieresMonthSelect.options.length) return; // tylko raz
+    premieresMonthSelect.innerHTML = MONTH_NAMES.map((name, i) => `<option value="${i+1}">${name}</option>`).join("");
+    const nowYear = new Date().getFullYear();
+    let yearsHtml = "";
+    for(let y = nowYear + 2; y >= 1970; y--){
+      yearsHtml += `<option value="${y}">${y}</option>`;
+    }
+    premieresYearSelect.innerHTML = yearsHtml;
+  }
+
+  let premieresPage = 1;
+  let premieresTotalPages = 1;
+  let premieresResults = [];
+  let premieresGenreMap = null;
+
+  function openPremieres(){
+    populatePremieresSelects();
+    let saved = null;
+    try{ saved = JSON.parse(localStorage.getItem(PREMIERES_VIEW_STORAGE) || "null"); }catch(e){}
+    const now = new Date();
+    premieresMonthSelect.value = String((saved && saved.month) || (now.getMonth() + 1));
+    premieresYearSelect.value = String((saved && saved.year) || now.getFullYear());
+    premieresBackdrop.hidden = false;
+    loadPremieres();
+  }
+
+  function closePremieres(){
+    premieresBackdrop.hidden = true;
+  }
+
+  function renderPremieresLoading(){
+    premieresBodyEl.innerHTML = `<p class="panel-loading">Szukam premier…</p>`;
+  }
+
+  function renderPremieresKeyMissing(){
+    premieresBodyEl.innerHTML = `
+      <p class="key-missing">Ta funkcja wymaga klucza API TMDb.
+        <br><button data-action="open-settings-from-premieres" type="button">Dodaj klucz API</button>
+      </p>`;
+  }
+
+  function renderPremieresError(msg){
+    premieresBodyEl.innerHTML = `
+      <p class="panel-error">${escapeHtml(msg)}
+        <br><button class="retry" type="button" id="premieresRetry">Spróbuj ponownie</button>
+      </p>`;
+    const retryBtn = document.getElementById("premieresRetry");
+    if(retryBtn) retryBtn.addEventListener("click", () => loadPremieres());
+  }
+
+  function renderPremiereCard(r){
+    const dateLabel = formatReleaseDate(r.release_date) || (r.release_date ? r.release_date.slice(0,4) : "data nieznana");
+    const genreNames = premieresGenreMap && r.genre_ids ? r.genre_ids.map(gid => premieresGenreMap[gid]).filter(Boolean) : [];
+    const poster = r.poster_path ? `https://image.tmdb.org/t/p/w300${r.poster_path}` : null;
+    const alreadyAdded = movies.some(m => m.tmdbId === r.id);
+    return `
+      <div class="premiere-card" data-tmdb-id="${r.id}">
+        ${poster
+          ? `<img class="premiere-poster" src="${poster}" alt="" loading="lazy">`
+          : `<div class="premiere-poster placeholder">?</div>`}
+        <div class="premiere-info">
+          <p class="premiere-title">${escapeHtml(r.title || r.original_title || "")}</p>
+          <p class="premiere-meta mono">${escapeHtml(dateLabel)}</p>
+          ${genreNames.length ? `<p class="premiere-meta mono">${escapeHtml(genreNames.join(", "))}</p>` : ""}
+          <button class="btn ${alreadyAdded ? "btn-ghost" : "btn-primary"} premiere-add-btn" type="button"
+            data-action="add-premiere" ${alreadyAdded ? "disabled" : ""}>
+            ${alreadyAdded ? "Już na liście" : "Dodaj do listy"}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function renderPremieresResults(){
+    if(!premieresResults.length){
+      premieresBodyEl.innerHTML = `<p class="panel-loading">Brak premier w polskich kinach w tym miesiącu.</p>`;
+      return;
+    }
+    const cardsHtml = premieresResults.map(renderPremiereCard).join("");
+    const hasMore = premieresPage < premieresTotalPages;
+    premieresBodyEl.innerHTML = `
+      <div class="premieres-grid" id="premieresGrid">${cardsHtml}</div>
+      ${hasMore ? `<button class="btn btn-ghost premieres-more" type="button" id="premieresLoadMore">Pokaż więcej</button>` : ""}`;
+    const moreBtn = document.getElementById("premieresLoadMore");
+    if(moreBtn) moreBtn.addEventListener("click", loadMorePremieres);
+  }
+
+  function premieresDateRange(){
+    const year = Number(premieresYearSelect.value);
+    const month = Number(premieresMonthSelect.value);
+    const lastDay = new Date(year, month, 0).getDate();
+    const mm = String(month).padStart(2, "0");
+    return { year, month, gte: `${year}-${mm}-01`, lte: `${year}-${mm}-${String(lastDay).padStart(2, "0")}` };
+  }
+
+  function premieresUrl(page){
+    const { gte, lte } = premieresDateRange();
+    const key = getApiKey();
+    return `https://api.themoviedb.org/3/discover/movie?api_key=${encodeURIComponent(key)}&language=pl-PL&region=PL&sort_by=popularity.desc&include_adult=false&release_date.gte=${gte}&release_date.lte=${lte}&with_release_type=2%7C3&page=${page}`;
+  }
+
+  async function loadPremieres(){
+    if(!getApiKey()){
+      renderPremieresKeyMissing();
+      return;
+    }
+    premieresPage = 1;
+    premieresResults = [];
+    const { year, month } = premieresDateRange();
+    try{ localStorage.setItem(PREMIERES_VIEW_STORAGE, JSON.stringify({ year, month })); }catch(e){}
+
+    renderPremieresLoading();
+    try{
+      const [res, genreMap] = await Promise.all([fetch(premieresUrl(premieresPage)), fetchGenreMap().catch(() => null)]);
+      if(!res.ok) throw new Error("premieres_failed");
+      const json = await res.json();
+      premieresGenreMap = genreMap;
+      premieresTotalPages = json.total_pages || 1;
+      premieresResults = json.results || [];
+      renderPremieresResults();
+    }catch(err){
+      renderPremieresError(friendlyError(err, "Nie udało się pobrać premier."));
+    }
+  }
+
+  // Dociąga kolejną stronę i DOPISUJE nowe karty do istniejącej siatki, zamiast
+  // przebudowywać cały widok od zera — dzięki temu przewinięcie zostaje tam,
+  // gdzie było, zamiast skakać na górę.
+  async function loadMorePremieres(){
+    const moreBtn = document.getElementById("premieresLoadMore");
+    if(moreBtn){ moreBtn.disabled = true; moreBtn.textContent = "Ładowanie…"; }
+    const nextPage = premieresPage + 1;
+    try{
+      const res = await fetch(premieresUrl(nextPage));
+      if(!res.ok) throw new Error("premieres_failed");
+      const json = await res.json();
+      premieresPage = nextPage;
+      premieresTotalPages = json.total_pages || 1;
+      const newResults = json.results || [];
+      premieresResults = premieresResults.concat(newResults);
+
+      const grid = document.getElementById("premieresGrid");
+      if(grid) grid.insertAdjacentHTML("beforeend", newResults.map(renderPremiereCard).join(""));
+
+      if(premieresPage < premieresTotalPages){
+        if(moreBtn){ moreBtn.disabled = false; moreBtn.textContent = "Pokaż więcej"; }
+      } else if(moreBtn){
+        moreBtn.remove();
+      }
+    }catch(err){
+      if(moreBtn){ moreBtn.disabled = false; moreBtn.textContent = "Spróbuj ponownie"; }
+    }
+  }
+
+  function addPremiereToList(result){
+    const year = result.release_date ? result.release_date.slice(0,4) : null;
+    const movie = createMovie(result.title || result.original_title || "");
+    movie.tmdbId = result.id;
+    movie.year = year;
+    movie.releaseDate = result.release_date || null;
+    movie.data.opis = {
+      text: result.overview && result.overview.trim() ? result.overview : "Brak opisu w bazie TMDb dla tego tytułu.",
+      poster: result.poster_path ? `https://image.tmdb.org/t/p/w200${result.poster_path}` : null,
+      year,
+    };
+    movie.data.ocena = {
+      average: typeof result.vote_average === "number" && result.vote_count > 0 ? result.vote_average : null,
+      count: result.vote_count || 0,
+    };
+    if(premieresGenreMap && result.genre_ids && result.genre_ids.length){
+      const names = result.genre_ids.map(gid => premieresGenreMap[gid]).filter(Boolean);
+      if(names.length) movie.genres = names;
+    }
+    addMovie(movie);
+    renderPremieresResults(); // odśwież siatkę — dodany film pokaże się jako "Już na liście"
+  }
+
+  premieresBtn.addEventListener("click", openPremieres);
+  closePremieresBtn.addEventListener("click", closePremieres);
+  premieresBackdrop.addEventListener("click", (e) => { if(e.target === premieresBackdrop) closePremieres(); });
+  premieresMonthSelect.addEventListener("change", () => loadPremieres());
+  premieresYearSelect.addEventListener("change", () => loadPremieres());
+
+  premieresBodyEl.addEventListener("click", (e) => {
+    const openSettingsBtn = e.target.closest('[data-action="open-settings-from-premieres"]');
+    if(openSettingsBtn){
+      closePremieres();
+      openSettings();
+      return;
+    }
+    const addBtn = e.target.closest('[data-action="add-premiere"]');
+    if(addBtn){
+      const card = addBtn.closest(".premiere-card");
+      const id = Number(card.dataset.tmdbId);
+      const result = premieresResults.find(r => r.id === id);
+      if(result) addPremiereToList(result);
+    }
+  });
 
   async function ensureTmdbId(movie){
     if(movie.tmdbId) return movie.tmdbId;
@@ -1655,6 +1939,7 @@
     if(!confirmBackdrop.hidden) closeConfirmRemove();
     else if(!pickBackdrop.hidden) closePickModal();
     else if(!trailerBackdrop.hidden) closeTrailerPickModal();
+    else if(!premieresBackdrop.hidden) closePremieres();
     else if(!settingsBackdrop.hidden) closeSettings();
   });
 
