@@ -1,0 +1,2434 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sieć Obserwacyjna — katalog kanałów</title>
+<script>
+  // ustawiamy motyw przed wczytaniem CSS, żeby uniknąć mignięcia złym motywem
+  (function () {
+    try {
+      var saved = localStorage.getItem("siecObserwacyjna.theme.v1");
+      if (saved === "light") document.documentElement.setAttribute("data-theme", "light");
+    } catch (e) { /* podgląd bez dostępu do localStorage — zostaje ciemny domyślny */ }
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0a0e0c;
+    --panel: #121a15;
+    --panel-hover: #16201a;
+    --line: #263129;
+    --text: #e7ece6;
+    --muted: #8b9890;
+    --amber: #ffb238;
+    --amber-hover: #ffc158;
+    --amber-dim: rgba(255, 178, 56, 0.12);
+    --signal: #4ade80;
+    --signal-dim: rgba(74, 222, 128, 0.14);
+    --radius: 4px;
+  }
+
+  html[data-theme="light"] {
+    --ink: #f1f3ee;
+    --panel: #ffffff;
+    --panel-hover: #eaeee3;
+    --line: #d5dbc9;
+    --text: #11150d;
+    --muted: #5b6656;
+    --amber: #a35d00;
+    --amber-hover: #8c4f00;
+    --amber-dim: rgba(163, 93, 0, 0.10);
+    --signal: #15803d;
+    --signal-dim: rgba(21, 128, 61, 0.10);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    line-height: 1.55;
+    padding: 1.5rem 1rem 4rem;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 44px 44px;
+    background-position: center top;
+    background-attachment: fixed;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 0%, transparent 0%, var(--ink) 72%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1240px; margin: 0 auto; position: relative; z-index: 1; }
+
+  /* --- top ops bar --- */
+  .ops-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-bottom: 0.9rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .ops-bar .brand { color: var(--text); }
+  .ops-bar .brand span { color: var(--amber); }
+  .ops-bar .status { display: flex; align-items: center; gap: 0.5rem; }
+  .theme-toggle {
+    background: var(--ink);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 0.35rem 0.7rem;
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .theme-toggle:hover { border-color: var(--amber); color: var(--amber); }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--signal);
+    box-shadow: 0 0 6px var(--signal);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  /* --- hero --- */
+  .hero { text-align: center; margin-bottom: 2.5rem; }
+  .hero .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 0.9rem;
+  }
+  .hero h1 {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: clamp(1.9rem, 5vw, 3.1rem);
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    animation: bootFlicker 900ms steps(1, end) both;
+  }
+  @keyframes bootFlicker {
+    0% { opacity: 0; }
+    4% { opacity: 1; text-shadow: 0 0 10px var(--amber); }
+    7% { opacity: 0.15; text-shadow: none; }
+    11% { opacity: 1; text-shadow: 0 0 10px var(--amber); }
+    18% { opacity: 0.3; text-shadow: none; }
+    23% { opacity: 1; }
+    100% { opacity: 1; text-shadow: none; }
+  }
+  .hero p.subtitle { color: var(--muted); font-size: 1rem; max-width: 620px; margin: 0 auto; }
+
+  /* --- controls --- */
+  .controls-wrapper {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.3rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-line {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    margin-bottom: 1.1rem;
+    transition: border-color 0.15s ease;
+  }
+  .search-line:focus-within { border-color: var(--amber); }
+  .search-line .prompt { font-family: 'JetBrains Mono', monospace; color: var(--amber); font-weight: 600; }
+  .search-line input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+  }
+  .search-line input::placeholder { color: var(--muted); }
+
+  .filter-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+
+  .filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--ink);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 0.45rem 0.85rem;
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .filter-btn .led {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--line);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+  }
+  .filter-btn:hover { border-color: var(--muted); color: var(--text); }
+  .filter-btn.active { border-color: var(--amber); color: var(--amber); }
+  .filter-btn.active .led { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+  .filter-btn[data-category="tracked"].active { border-color: var(--signal); color: var(--signal); }
+  .filter-btn[data-category="tracked"].active .led { background: var(--signal); box-shadow: 0 0 5px var(--signal); }
+
+  .sort-row {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-top: 1.1rem;
+  }
+  .sort-label { margin: 0; white-space: nowrap; }
+  .sort-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+
+  /* --- grid + cards --- */
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 1.1rem;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.2rem 1.3rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.2s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover { border-color: var(--amber); transform: translateY(-2px); }
+  }
+  .card:active { border-color: var(--amber); }
+  .card.custom-card { border-color: var(--signal); }
+  .card.edited-card { border-color: var(--amber); }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.7rem;
+  }
+  .card-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    background: var(--amber-dim);
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+  }
+
+  .card-header-actions { display: flex; align-items: center; gap: 0.35rem; }
+
+  .track-btn, .edit-btn, .delete-btn {
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.76rem;
+    line-height: 1;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .track-btn:hover, .edit-btn:hover, .delete-btn:hover { color: var(--text); border-color: var(--muted); }
+  .delete-btn:hover, .edit-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .track-btn[aria-pressed="true"] {
+    color: var(--signal);
+    border-color: var(--signal);
+    background: var(--signal-dim);
+  }
+
+  .card-area {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .card-title {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: 0.01em;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .card-desc { color: var(--muted); font-size: 0.92rem; margin-bottom: 1.3rem; flex-grow: 1; }
+
+  .card-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    width: 100%;
+    text-align: center;
+    background: none;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    text-decoration: none;
+    padding: 0.65rem;
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .card-link:hover { background: var(--amber); color: var(--ink); }
+
+  .custom-badge, .edited-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .custom-badge { color: var(--signal); }
+  .edited-badge { color: var(--amber); }
+  .custom-badge::before, .edited-badge::before {
+    content: "";
+    width: 5px; height: 5px; border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 4px currentColor;
+  }
+
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3.5rem 1rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+  }
+  .empty-state .prompt { color: var(--amber); }
+
+  .stats {
+    margin-top: 2.2rem;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  a, button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+  /* na dotyku nie ma hover, więc wciśnięcie musi dać własny, wyraźny sygnał */
+  .filter-btn:active, .theme-toggle:active, .add-channel-btn:active,
+  .track-btn:active, .edit-btn:active, .delete-btn:active,
+  .card-link:active, .btn-primary:active, .btn-secondary:active,
+  .modal-close:active, .restore-link:active,
+  .view-tab:active, .videos-fetch-btn:active, .data-io-btn:active {
+    transform: scale(0.94);
+  }
+  .filter-btn, .theme-toggle, .add-channel-btn,
+  .track-btn, .edit-btn, .delete-btn,
+  .card-link, .btn-primary, .btn-secondary,
+  .modal-close, .restore-link,
+  .view-tab, .videos-fetch-btn, .data-io-btn {
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero h1 { animation: none; }
+    .status-dot { animation: none; }
+    .card { transition: none; }
+    .filter-btn, .theme-toggle, .add-channel-btn,
+    .track-btn, .edit-btn, .delete-btn,
+    .card-link, .btn-primary, .btn-secondary,
+    .modal-close, .restore-link,
+    .view-tab, .videos-fetch-btn, .data-io-btn {
+      transition: none;
+    }
+    .filter-btn:active, .theme-toggle:active, .add-channel-btn:active,
+    .track-btn:active, .edit-btn:active, .delete-btn:active,
+    .card-link:active, .btn-primary:active, .btn-secondary:active,
+    .modal-close:active, .restore-link:active,
+    .view-tab:active, .videos-fetch-btn:active, .data-io-btn:active {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .ops-bar { justify-content: center; text-align: center; }
+    body { padding: 1rem 0.75rem 3rem; }
+
+    /* pasek statusu: chowamy opisowy tekst, zostaje sama pulsująca kropka + zegar + przełącznik */
+    .status-label { display: none; }
+    .ops-bar .status { gap: 0.6rem; }
+
+    /* tytuł: trochę mniejszy margines bezpieczeństwa na wąskich ekranach */
+    .hero h1 { font-size: clamp(1.7rem, 8vw, 3.1rem); }
+
+    /* cele dotykowe min. ok. 40-44px — łatwiej trafić kciukiem */
+    .track-btn, .edit-btn, .delete-btn { width: 34px; height: 34px; }
+    .filter-btn, .theme-toggle { padding: 0.55rem 0.9rem; }
+    .add-channel-btn { padding: 0.85rem; }
+    .card-header-actions { gap: 0.4rem; }
+
+    /* karty: trochę mniej marginesu po bokach, więcej miejsca na treść */
+    .card { padding: 1.1rem 1.1rem 1.2rem; }
+    .grid-container { gap: 0.9rem; }
+
+    /* formularz: większa czcionka (wygodniejsze pisanie), wyższe przyciski */
+    .field-input { font-size: 1rem; padding: 0.7rem 0.75rem; }
+    .form-actions .btn-secondary, .form-actions .btn-primary { padding: 0.75rem 1.1rem; flex: 1; }
+    .modal-panel { max-height: 85vh; }
+
+    /* zakładki i widok filmów */
+    .view-tabs { gap: 0.4rem; }
+    .view-tab { flex: 1; padding: 0.7rem 0.5rem; font-size: 0.72rem; }
+    .videos-fetch-btn { padding: 0.85rem; }
+    .video-card { padding: 0; }
+  }
+
+  /* --- add/edit button + storage/restore notes --- */
+  .add-channel-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 1.1rem;
+    padding: 0.7rem;
+    background: none;
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  .add-channel-btn:hover { border-color: var(--amber); color: var(--amber); }
+  .add-channel-btn .plus { font-size: 1rem; font-weight: 700; }
+
+  .storage-note {
+    margin-top: 0.6rem;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+  }
+
+  .restore-link {
+    display: block;
+    margin: 0.5rem auto 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .restore-link:hover { color: var(--amber); }
+
+  .data-io-row {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-top: 0.9rem;
+  }
+  .data-io-btn {
+    background: var(--ink);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .data-io-btn:hover { border-color: var(--amber); color: var(--amber); }
+  }
+  .data-io-note {
+    margin-top: 0.5rem;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  /* --- zakładki widoku (katalog / filmy) --- */
+  .view-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .view-tab {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--muted);
+    padding: 0.6rem 1.3rem;
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .view-tab:hover { border-color: var(--muted); color: var(--text); }
+  }
+  .view-tab.active { border-color: var(--amber); color: var(--amber); background: var(--amber-dim); }
+
+  /* --- sekcja klucza API --- */
+  .api-key-help {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: 0.6rem 0 0.9rem;
+    line-height: 1.55;
+  }
+  .api-key-help a { color: var(--amber); }
+  .api-key-saved {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--signal);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .custom-days-row {
+    margin-top: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+  .custom-days-row .field-label { margin: 0; white-space: nowrap; }
+  .custom-days-input { max-width: 140px; }
+
+  .videos-fetch-btn {
+    border-style: solid;
+    border-color: var(--amber);
+    background: var(--amber-dim);
+    color: var(--amber);
+    font-weight: 600;
+    margin-top: 1.3rem;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .videos-fetch-btn:hover { background: var(--amber); color: var(--ink); }
+  }
+  .videos-fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .progress-bar-track {
+    width: 100%;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin-top: 0.6rem;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--amber);
+    transition: width 0.2s ease;
+  }
+
+  .skipped-note {
+    margin-bottom: 1.2rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .video-filter-block { margin-bottom: 1.3rem; }
+  .video-filter-block .search-line { margin-bottom: 0; }
+
+  /* --- lista filmów --- */
+  .videos-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 1.1rem;
+  }
+  .video-card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.15s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .video-card:hover { border-color: var(--amber); }
+  }
+  .video-thumb-wrap { position: relative; }
+  .video-thumb {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    background: var(--ink);
+    display: block;
+  }
+  .video-duration {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    background: rgba(0, 0, 0, 0.82);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    letter-spacing: 0.02em;
+  }
+  .video-type-badge {
+    position: absolute;
+    left: 0.5rem;
+    top: 0.5rem;
+    background: var(--amber);
+    color: var(--ink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+  }
+  .excluded-intro {
+    margin-bottom: 1.3rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    max-width: 640px;
+  }
+  .video-body { padding: 0.9rem 1.1rem 1.1rem; display: flex; flex-direction: column; flex: 1; }
+  .video-channel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 0.4rem;
+  }
+  .channel-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--line);
+  }
+  .video-title {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .video-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 0.9rem;
+  }
+  .video-link { margin-top: auto; }
+
+  /* --- modals --- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 12, 0.82);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 50;
+  }
+  .modal-overlay[hidden] { display: none; }
+  .modal-panel {
+    width: 100%;
+    max-width: 460px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--amber);
+    border-radius: var(--radius);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .modal-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--amber);
+    letter-spacing: 0.02em;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 1rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0.3rem;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .add-form { padding: 1.1rem; display: flex; flex-direction: column; }
+  .field-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 0.7rem;
+    margin-bottom: 0.35rem;
+  }
+  .field-input {
+    width: 100%;
+    background: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.7rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .field-input:focus { border-color: var(--amber); }
+  textarea.field-input { resize: vertical; min-height: 2.4rem; }
+  select.field-input { cursor: pointer; }
+
+  .autofill-status {
+    margin-top: 0.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.74rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .autofill-status.is-success { color: var(--signal); }
+  .autofill-status.is-error { color: var(--amber); }
+
+  .field-error {
+    margin-top: 0.8rem;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--amber);
+    background: var(--amber-dim);
+    border-radius: var(--radius);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    color: var(--amber);
+  }
+
+  .confirm-body { padding: 1.1rem; }
+  .confirm-message { color: var(--text); font-size: 0.92rem; line-height: 1.55; }
+  .confirm-message strong { color: var(--amber); }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 1.2rem;
+  }
+  .btn-secondary, .btn-primary {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .btn-secondary {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .btn-secondary:hover { border-color: var(--muted); color: var(--text); }
+  .btn-primary {
+    background: var(--amber);
+    border: 1px solid var(--amber);
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--amber-hover); }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="ops-bar">
+      <div class="brand">SIEĆ<span>_</span>OBSERWACYJNA</div>
+      <div class="status">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span class="status-label">systemy aktywne</span>
+        <time id="clock" aria-hidden="true">--:--:--</time>
+        <button class="theme-toggle" id="themeToggle" type="button">☀ Jasny</button>
+      </div>
+    </div>
+
+    <header class="hero">
+      <p class="eyebrow">Raport bieżący · źródła weryfikowane</p>
+      <h1>Katalog kanałów obserwacyjnych</h1>
+      <p class="subtitle">Geopolityka, wojskowość, ekonomia, gospodarka i publicystyka — jedna baza, wszystkie sektory.</p>
+    </header>
+
+    <div class="view-tabs" role="tablist" aria-label="Widok">
+      <button class="view-tab active" id="tabCatalog" type="button" role="tab" aria-selected="true">Katalog kanałów</button>
+      <button class="view-tab" id="tabVideos" type="button" role="tab" aria-selected="false">Najnowsze filmy</button>
+      <button class="view-tab" id="tabExcluded" type="button" role="tab" aria-selected="false">Shorty i transmisje</button>
+    </div>
+
+    <div id="catalogView">
+      <div class="controls-wrapper">
+        <div class="search-line" role="search">
+          <label for="searchInput" class="prompt" aria-hidden="true">&gt;</label>
+          <input type="text" id="searchInput" placeholder="szukaj po nazwie, temacie lub słowie kluczowym…" aria-label="Szukaj kanałów">
+        </div>
+
+        <div class="filter-tags" id="filterContainer" role="group" aria-label="Filtruj wg kategorii">
+          <button class="filter-btn active" data-category="all" aria-pressed="true"><span class="led"></span>Wszystkie</button>
+          <button class="filter-btn" data-category="tracked" aria-pressed="false"><span class="led"></span>Obserwowane</button>
+          <button class="filter-btn" data-category="Geopolityka" aria-pressed="false"><span class="led"></span>Geopolityka</button>
+          <button class="filter-btn" data-category="Wojskowość" aria-pressed="false"><span class="led"></span>Wojskowość</button>
+          <button class="filter-btn" data-category="Ekonomia" aria-pressed="false"><span class="led"></span>Ekonomia</button>
+          <button class="filter-btn" data-category="Finanse osobiste" aria-pressed="false"><span class="led"></span>Finanse osobiste</button>
+          <button class="filter-btn" data-category="Inwestowanie" aria-pressed="false"><span class="led"></span>Inwestowanie</button>
+          <button class="filter-btn" data-category="Gospodarka" aria-pressed="false"><span class="led"></span>Gospodarka</button>
+          <button class="filter-btn" data-category="Publicystyka" aria-pressed="false"><span class="led"></span>Publicystyka</button>
+          <button class="filter-btn" data-category="Media alternatywne" aria-pressed="false"><span class="led"></span>Media alternatywne</button>
+          <button class="filter-btn" data-category="Polityka" aria-pressed="false"><span class="led"></span>Polityka</button>
+        </div>
+
+        <div class="sort-row">
+          <span class="field-label sort-label">Sortowanie</span>
+          <div class="sort-tags" id="sortContainer" role="group" aria-label="Sortuj kanały">
+            <button class="filter-btn active" data-sort="default" aria-pressed="true"><span class="led"></span>Domyślnie</button>
+            <button class="filter-btn" data-sort="az" aria-pressed="false"><span class="led"></span>A → Z</button>
+            <button class="filter-btn" data-sort="za" aria-pressed="false"><span class="led"></span>Z → A</button>
+          </div>
+        </div>
+
+        <button class="add-channel-btn" id="openAddModal" type="button">
+          <span class="plus">+</span> Dodaj własny kanał do bazy
+        </button>
+        <p class="storage-note" id="storageNote"></p>
+        <button class="restore-link" id="restoreOriginal" type="button" hidden>↺ przywróć oryginalną bazę (cofnij edycje i usunięcia bazowych kanałów)</button>
+
+        <div class="data-io-row">
+          <button class="data-io-btn" id="exportDataBtn" type="button">⬇ Eksportuj dane</button>
+          <button class="data-io-btn" id="importDataBtn" type="button">⬆ Importuj dane</button>
+          <input type="file" id="importFileInput" accept="application/json,.json" hidden>
+        </div>
+        <p class="data-io-note">Eksport obejmuje własne kanały, edycje i usunięcia bazowych pozycji oraz motyw — bez klucza API (ten wpisujesz osobno, ze względów bezpieczeństwa)</p>
+        <p class="field-error" id="dataIoError" hidden></p>
+      </div>
+
+      <div class="grid-container" id="gridContainer"></div>
+
+      <div class="stats" id="statsCount"></div>
+    </div>
+
+    <div id="videosView" hidden>
+      <div class="controls-wrapper">
+        <div id="apiKeyBlock">
+          <label class="field-label" for="apiKeyInput">Klucz YouTube Data API v3 *</label>
+          <input class="field-input" id="apiKeyInput" type="password" placeholder="wklej swój klucz API" autocomplete="off">
+          <p class="api-key-help">
+            Bezpłatny klucz zdobędziesz w <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Google Cloud Console</a> —
+            włącz „YouTube Data API v3", potem „Utwórz dane logowania → Klucz API". Zajmuje ok. 5 minut, nie wymaga karty płatniczej,
+            darmowy limit to 10 000 jednostek dziennie (ten katalog zużywa go w ułamku procenta). Jeśli ograniczasz klucz do konkretnych
+            stron (HTTP referrer), zostaw go bez ograniczeń albo dodaj wyjątek — inaczej pobieranie z otwartego lokalnie pliku może zostać zablokowane.
+            Klucz zapisujemy tylko lokalnie w Twojej przeglądarce — nigdy nie wysyłamy go nigdzie poza Google.
+          </p>
+          <button class="btn-primary" id="saveApiKeyBtn" type="button">Zapisz klucz</button>
+        </div>
+        <p class="api-key-saved" id="apiKeySavedNote" hidden>
+          ✓ Klucz API zapisany lokalnie. <button class="restore-link" id="changeApiKeyBtn" type="button">zmień klucz</button>
+        </p>
+
+        <p class="field-label">Zakres dat wstecz</p>
+        <div class="filter-tags" id="rangeContainer" role="group" aria-label="Zakres dat wstecz">
+          <button class="filter-btn" data-range-type="months" data-months="1" aria-pressed="false"><span class="led"></span>1 miesiąc</button>
+          <button class="filter-btn active" data-range-type="months" data-months="3" aria-pressed="true"><span class="led"></span>3 miesiące</button>
+          <button class="filter-btn" data-range-type="months" data-months="6" aria-pressed="false"><span class="led"></span>6 miesięcy</button>
+          <button class="filter-btn" data-range-type="months" data-months="12" aria-pressed="false"><span class="led"></span>12 miesięcy</button>
+          <button class="filter-btn" data-range-type="days" id="customDaysBtn" aria-pressed="false"><span class="led"></span>Własna liczba dni</button>
+        </div>
+        <div class="custom-days-row" id="customDaysRow" hidden>
+          <label class="field-label" for="customDaysInput">Liczba dni wstecz</label>
+          <input class="field-input custom-days-input" id="customDaysInput" type="number" min="1" max="3650" placeholder="np. 45" inputmode="numeric">
+        </div>
+
+        <button class="add-channel-btn videos-fetch-btn" id="loadVideosBtn" type="button">
+          <span class="plus">▶</span> Pokaż listę filmów
+        </button>
+        <p class="storage-note" id="videosProgress"></p>
+        <div class="progress-bar-track" id="progressTrack" hidden><div class="progress-bar-fill" id="progressFill"></div></div>
+        <p class="field-error" id="videosError" hidden></p>
+      </div>
+
+      <div class="stats" id="videosStats" hidden></div>
+      <p class="skipped-note" id="videosSkipped" hidden></p>
+
+      <div class="video-filter-block" id="videoFilterBlock" hidden>
+        <p class="field-label">Kategoria</p>
+        <div class="filter-tags" id="videoCategoryFilter" role="group" aria-label="Filtruj filmy wg kategorii">
+          <button class="filter-btn active" data-category="all" aria-pressed="true"><span class="led"></span>Wszystkie</button>
+          <button class="filter-btn" data-category="Geopolityka" aria-pressed="false"><span class="led"></span>Geopolityka</button>
+          <button class="filter-btn" data-category="Wojskowość" aria-pressed="false"><span class="led"></span>Wojskowość</button>
+          <button class="filter-btn" data-category="Ekonomia" aria-pressed="false"><span class="led"></span>Ekonomia</button>
+          <button class="filter-btn" data-category="Finanse osobiste" aria-pressed="false"><span class="led"></span>Finanse osobiste</button>
+          <button class="filter-btn" data-category="Inwestowanie" aria-pressed="false"><span class="led"></span>Inwestowanie</button>
+          <button class="filter-btn" data-category="Gospodarka" aria-pressed="false"><span class="led"></span>Gospodarka</button>
+          <button class="filter-btn" data-category="Publicystyka" aria-pressed="false"><span class="led"></span>Publicystyka</button>
+          <button class="filter-btn" data-category="Media alternatywne" aria-pressed="false"><span class="led"></span>Media alternatywne</button>
+          <button class="filter-btn" data-category="Polityka" aria-pressed="false"><span class="led"></span>Polityka</button>
+        </div>
+
+        <p class="field-label">Sortowanie</p>
+        <div class="sort-tags" id="videoSortContainer" role="group" aria-label="Sortuj filmy">
+          <button class="filter-btn active" data-sort="newest" aria-pressed="true"><span class="led"></span>Najnowsze</button>
+          <button class="filter-btn" data-sort="oldest" aria-pressed="false"><span class="led"></span>Najstarsze</button>
+          <button class="filter-btn" data-sort="channel" aria-pressed="false"><span class="led"></span>Kanał A → Z</button>
+          <button class="filter-btn" data-sort="longest" aria-pressed="false"><span class="led"></span>Najdłuższe</button>
+        </div>
+
+        <p class="field-label">Filtruj wyniki po nazwie kanału</p>
+        <div class="search-line">
+          <label for="videoChannelFilter" class="prompt" aria-hidden="true">&gt;</label>
+          <input type="text" id="videoChannelFilter" placeholder="np. Kanał Zero, Defence24…" aria-label="Filtruj filmy po nazwie kanału">
+        </div>
+        <p class="storage-note" id="videoFilterCount"></p>
+      </div>
+
+      <div class="videos-list" id="videosContainer"></div>
+    </div>
+
+    <div id="excludedView" hidden>
+      <p class="excluded-intro">Filmy, które nie trafiły do „Najnowsze filmy" — Shorty, transmisje na żywo i nadchodzące premiery z tego samego pobrania. Pobierz listę w zakładce „Najnowsze filmy", żeby ją tu zobaczyć.</p>
+      <div class="stats" id="excludedStats" hidden></div>
+      <div class="videos-list" id="excludedContainer"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addModalOverlay" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+      <div class="modal-header">
+        <span id="addModalTitle" class="modal-title">&gt; nowy_wpis // dodaj kanał</span>
+        <button class="modal-close" id="addModalClose" type="button" aria-label="Zamknij">✕</button>
+      </div>
+      <form id="addChannelForm" class="add-form" novalidate>
+        <label class="field-label" for="addLink">Link do kanału *</label>
+        <input class="field-input" id="addLink" type="url" placeholder="https://www.youtube.com/@nazwa" required>
+        <p class="autofill-status" id="autofillStatus" hidden></p>
+
+        <label class="field-label" for="addName">Nazwa kanału *</label>
+        <input class="field-input" id="addName" type="text" maxlength="80" placeholder="np. Nazwa Twórcy" required>
+
+        <label class="field-label" for="addCategory">Kategoria *</label>
+        <select class="field-input" id="addCategory" required>
+          <option value="" disabled>wybierz sektor…</option>
+          <option value="Geopolityka">Geopolityka</option>
+          <option value="Wojskowość">Wojskowość</option>
+          <option value="Ekonomia">Ekonomia</option>
+          <option value="Finanse osobiste">Finanse osobiste</option>
+          <option value="Inwestowanie">Inwestowanie</option>
+          <option value="Gospodarka">Gospodarka</option>
+          <option value="Publicystyka">Publicystyka</option>
+          <option value="Media alternatywne">Media alternatywne</option>
+          <option value="Polityka">Polityka</option>
+        </select>
+
+        <label class="field-label" for="addArea">Tematyka / obszar</label>
+        <input class="field-input" id="addArea" type="text" maxlength="60" placeholder="np. Ekonomia / Finanse (opcjonalnie)">
+
+        <label class="field-label" for="addDesc">Krótki opis *</label>
+        <textarea class="field-input" id="addDesc" maxlength="160" rows="2" placeholder="Jedno zdanie o tym, czego dotyczy kanał" required></textarea>
+
+        <p class="field-error" id="addFormError" hidden></p>
+
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="addModalCancel">Anuluj</button>
+          <button type="submit" class="btn-primary" id="addSubmitBtn">Zapisz kanał</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="confirmOverlay" hidden>
+    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-header">
+        <span id="confirmTitle" class="modal-title">&gt; potwierdź_operację</span>
+        <button class="modal-close" id="confirmClose" type="button" aria-label="Zamknij">✕</button>
+      </div>
+      <div class="confirm-body">
+        <p class="confirm-message" id="confirmMessage"></p>
+        <div class="form-actions">
+          <button type="button" class="btn-secondary" id="confirmCancel">Anuluj</button>
+          <button type="button" class="btn-primary" id="confirmOk">Usuń na stałe</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const RAW_CHANNELS = [
+    // Wojskowość
+    { name: "WoW - Wolski o Wojnie", area: "Militaria / Wojskowość", category: "Wojskowość", desc: "Analizy sprzętu wojskowego, taktyki i przemysłu zbrojeniowego", link: "https://www.youtube.com/@WolskioWojnie" },
+    { name: "Defence24TV", area: "Wojskowość / Przemysł", category: "Wojskowość", desc: "Oficjalny kanał portalu obronnego, relacje z targów i zamówienia", link: "https://www.youtube.com/@DF24pl" },
+    { name: "Irytujący Historyk", area: "Militaria / Historia", category: "Wojskowość", desc: "Niekonwencjonalne omówienia historii uzbrojenia, broni palnej, sprzętu wojskowego i taktyki", link: "https://www.youtube.com/@IrytujacyHistoryk" },
+    { name: "ZBiAM", area: "Wojskowość / Przemysł", category: "Wojskowość", desc: "Eksperckie analizy pancerne, lotnicze i morskie (Zespół Badań i Analiz Militarnych)", link: "https://www.youtube.com/@wydawnictwozbiam2007" },
+    { name: "Kanał Militarny", area: "Wojskowość / Militaria", category: "Wojskowość", desc: "Porównania armii, analizy uzbrojenia i sprzętu, rankingi potencjału militarnego", link: "https://www.youtube.com/@KanalMilitarny" },
+    { name: "Polska Zbrojna", area: "Wojskowość / MON", category: "Wojskowość", desc: "Oficjalny kanał wydawnictwa MON: reportaże z poligonów, zamówienia zbrojeniowe, kulisy wojska", link: "https://www.youtube.com/channel/UCvQuRQJRlcbg05sR06XXMzQ" },
+    { name: "Defence24 Extra", area: "Wojskowość / Przemysł", category: "Wojskowość", desc: "Wywiady z przedstawicielami przemysłu zbrojeniowego i twórcami nowych rozwiązań dla wojska", link: "https://www.youtube.com/@defence24extra" },
+    { name: "Historia Wojska Polskiego", area: "Wojskowość / Historia", category: "Wojskowość", desc: "Rzetelna popularyzacja historii Wojska Polskiego, bez sensacji i niepotwierdzonych rewelacji", link: "https://www.youtube.com/@Historia_WP" },
+    { name: "Analiza Polityczna", area: "Wojskowość / Ukraina", category: "Wojskowość", desc: "Regularne raporty z mapami z frontu wojny rosyjsko-ukraińskiej oraz szersze tło konfliktów i uzbrojenia", link: "https://www.youtube.com/@AnalizaPolit" },
+
+    // Geopolityka
+    { name: "OSW - Ośrodek Studiów Wschodnich", area: "Geopolityka / Wojskowość", category: "Geopolityka", desc: "Profesjonalne analizy państwowego think tanku ws. Europy Wschodniej", link: "https://www.youtube.com/@OSW-OsrodekStudiowWschodnich" },
+    { name: "Good Times Bad Times", area: "Geopolityka / Wojskowość", category: "Geopolityka", desc: "Animowane materiały objaśniające kulisy konfliktów i logistykę", link: "https://www.youtube.com/@GoodTimesBadTimesPL" },
+    { name: "Strategy&Future", area: "Geopolityka", category: "Geopolityka", desc: "Teoria rywalizacji mocarstw (USA–Chiny) i teatr bałtycki", link: "https://www.youtube.com/@StrategyFuture" },
+    { name: "Układ Sił", area: "Geopolityka", category: "Geopolityka", desc: "Architektura bezpieczeństwa, dyplomacja i sojusze międzynarodowe", link: "https://www.youtube.com/@Uklad_sil" },
+    { name: "Dział Zagraniczny", area: "Geopolityka / Reportaż", category: "Geopolityka", desc: "Pogłębione reportaże z mniej medialnych i odległych rejonów świata", link: "https://www.youtube.com/@DzialZagraniczny" },
+    { name: "Podróż bez Paszportu", area: "Geopolityka / Wywiady", category: "Geopolityka", desc: "Regularne wywiady z ekspertami na temat bieżących kryzysów", link: "https://www.youtube.com/@PodrozBezPaszportu" },
+    { name: "Historia Realna", area: "Geopolityka / Historia", category: "Geopolityka", desc: "Wywiady z dyplomatami, wojskowymi i analitykami sił", link: "https://www.youtube.com/@HistoriaRealna" },
+    { name: "Krzysztof Wojczal", area: "Geopolityka", category: "Geopolityka", desc: "Prognozy geostrategiczne i chłodna analiza oparta na danych", link: "https://www.youtube.com/@KrzysztofWojczal" },
+    { name: "Geoekonomia", area: "Geopolityka / Gospodarka", category: "Geopolityka", desc: "Zależności między globalną polityką a łańcuchami dostaw", link: "https://www.youtube.com/@GEO_EKONOMIA" },
+    { name: "Po Amerykańsku", area: "Geopolityka / USA", category: "Geopolityka", desc: "Kulisy amerykańskiej sceny politycznej i polityka zagraniczna Waszyngtonu", link: "https://www.youtube.com/@podcastpoamerykansku" },
+    { name: "Za Rubieżą", area: "Geopolityka", category: "Geopolityka", desc: "Polityka zagraniczna, historia konfliktów i relacje międzynarodowe", link: "https://www.youtube.com/@ZaRubieza" },
+    { name: "Globalna Gra", area: "Geopolityka / Azja", category: "Geopolityka", desc: "Zrozumieć Chiny, Azję i rywalizację supermocarstw (Piotr Plebaniak)", link: "https://www.youtube.com/@GlobalnaGra" },
+    { name: "Nowa Konfederacja", area: "Geopolityka / Analiza", category: "Geopolityka", desc: "Cotygodniowe analizy geostrategiczne, rywalizacja mocarstw i live Q&A o bieżących kryzysach", link: "https://www.youtube.com/@NowaKonfederacjaNK" },
+    { name: "Leszek Sykulski - Podkast Geopolityczny", area: "Geopolityka / Bezpieczeństwo", category: "Geopolityka", desc: "Komentarze do bieżącej polityki międzynarodowej, wywiady i wykłady akademickie (cykl #AkademiaGeopolityki)", link: "https://www.youtube.com/@Leszek_Sykulski" },
+    { name: "Raport o stanie świata", area: "Geopolityka / Sprawy międzynarodowe", category: "Geopolityka", desc: "Dariusz Rosiak: pogłębiona analiza konfliktów, kryzysów i wydarzeń politycznych na świecie", link: "https://www.youtube.com/@DariuszRosiakRaport" },
+
+    // Ekonomia
+    { name: "Independent Trader", area: "Ekonomia / Inwestycje", category: "Ekonomia", desc: "System bankowy, surowce, rynki finansowe i cykle gospodarcze", link: "https://www.youtube.com/@Independent_Trader" },
+    { name: "Narodowy Bank Polski", area: "Makroekonomia", category: "Ekonomia", desc: "Oficjalny kanał NBP: posiedzenia RPP, wypowiedzi prezesa i analizy bankowości centralnej", link: "https://www.youtube.com/@NBPpl" },
+    { name: "XTB Polska", area: "Ekonomia / Rynki", category: "Ekonomia", desc: "Codzienne analizy rynków finansowych, surowców i giełd", link: "https://www.youtube.com/@xtbpl" },
+    { name: "Puls Biznesu", area: "Ekonomia / Giełda", category: "Ekonomia", desc: "Kanał wiodącego polskiego dziennika biznesowego: wiadomości giełdowe i gospodarcze", link: "https://www.youtube.com/pulsbiznesu" },
+    { name: "Damian Olszewski", area: "Ekonomia / Finanse", category: "Ekonomia", desc: "Praktycznie o inflacji, oszczędnościach i pułapkach systemu", link: "https://www.youtube.com/@Praktycznieopieniadzach" },
+
+    // Finanse osobiste
+    { name: "Marcin Iwuć / FBO", area: "Finanse osobiste / Budżet domowy", category: "Finanse osobiste", desc: "Budżet domowy, oszczędzanie i inwestowanie krok po kroku (założyciel FBO, tytuł CFA)", link: "https://www.youtube.com/@MarcinIwucFBO" },
+    { name: "Subiektywnie o Finansach", area: "Finanse osobiste", category: "Finanse osobiste", desc: "Wpływ decyzji gospodarczych na domowy budżet, oszczędności i kredyty", link: "https://www.youtube.com/@subiektywnieofinansach" },
+    { name: "DoradcaTV", area: "Finanse osobiste", category: "Finanse osobiste", desc: "Finanse osobiste i inwestowanie tłumaczone prostym, przystępnym językiem", link: "https://www.youtube.com/user/doradcatv" },
+    { name: "Motywator Finansowy", area: "Finanse osobiste", category: "Finanse osobiste", desc: "Finanse osobiste, inwestycje, giełda papierów wartościowych i rynek pracy", link: "https://www.youtube.com/@motywatorfinansowy" },
+    { name: "Pankracy", area: "Finanse osobiste", category: "Finanse osobiste", desc: "Zarabianie, oszczędzanie i inwestowanie z naciskiem na niezależność finansową i produktywność", link: "https://www.youtube.com/@mr_pankracy" },
+    { name: "Michał Szafrański", area: "Finanse osobiste / Archiwum", category: "Finanse osobiste", desc: "Archiwum kultowego podcastu o oszczędzaniu i inwestowaniu (autor książki „Finansowy Ninja”)", link: "https://www.youtube.com/@Szaffi" },
+
+    // Inwestowanie
+    { name: "Strefa Inwestorów", area: "Inwestowanie / Giełda", category: "Inwestowanie", desc: "Wyniki polskich spółek giełdowych, przemysł i rynki", link: "https://www.youtube.com/@StrefaInwestorow" },
+    { name: "DNA Rynków", area: "Inwestowanie / Rynki", category: "Inwestowanie", desc: "Chłodna analiza rynków akcji, surowców i wskaźników makro", link: "https://www.youtube.com/@DNARynkow" },
+    { name: "Finansowa TV", area: "Inwestowanie / Dywidendy", category: "Inwestowanie", desc: "Inwestowanie dywidendowe: analiza spółek, GPW, rynki zagraniczne, IKE/IKZE", link: "https://www.youtube.com/@FinansowaTV" },
+    { name: "Stowarzyszenie Inwestorów Indywidualnych", area: "Inwestowanie / Edukacja", category: "Inwestowanie", desc: "Największa organizacja inwestorów giełdowych w Polsce (od 1999 r.): analizy spółek, portfel SII, czaty z zarządami", link: "https://www.youtube.com/inwestorzy" },
+
+    // Gospodarka
+    { name: "Jakub Wiech / Elektryfikacja", area: "Gospodarka / Energetyka", category: "Gospodarka", desc: "Transformacja energetyczna, polski program jądrowy i OZE", link: "https://www.youtube.com/@Elektryfikacja" },
+    { name: "BiznesAlert", area: "Gospodarka / Energetyka", category: "Gospodarka", desc: "Ropa, gaz, infrastruktura krytyczna oraz polityka surowcowa UE", link: "https://www.youtube.com/@RedakcjaBiznesAlert" },
+    { name: "Szczepan Bentyn", area: "Gospodarka / Nieruchomości", category: "Gospodarka", desc: "Analizy cen mieszkań, popytu, podaży i programów rządowych", link: "https://www.youtube.com/@SzczepanBentyn" },
+    { name: "Przygody Przedsiębiorców", area: "Gospodarka / Biznes", category: "Gospodarka", desc: "Rozmowy o prowadzeniu firm i zmianach w polskim prawie gospodarczym", link: "https://www.youtube.com/@PrzygodyPrzedsiebiorcow" },
+    { name: "Wojciech Jakóbik - Energy Drink", area: "Gospodarka / Energetyka", category: "Gospodarka", desc: "Codzienny przegląd sektora energetycznego, bezpieczeństwo energetyczne i polityka paliwowa", link: "https://www.youtube.com/channel/UC1idNIDLzKr5dRZMK8XkdyQ" },
+    { name: "Tomasz Lebiedź o rynku nieruchomości, Symen24", area: "Gospodarka / Nieruchomości", category: "Gospodarka", desc: "Dane rynkowe o cenach mieszkań, popycie, podaży i prawie obrotu nieruchomościami", link: "https://www.youtube.com/@Tomasz_Lebiedz" },
+    { name: "Kanał Gospodarczy", area: "Gospodarka / Biznes", category: "Gospodarka", desc: "Dziennikarze mediów branżowych o gospodarce, rynku pracy, nieruchomościach i samorządach", link: "https://www.youtube.com/@Kanal_Gospodarczy" },
+    { name: "Biznes na Ostro", area: "Gospodarka / Biznes", category: "Gospodarka", desc: "Rozmowy z przedsiębiorcami o realnym prowadzeniu firmy, oszczędzaniu i inwestowaniu", link: "https://www.youtube.com/@biznesnaostro" },
+    { name: "Biznes Klasa", area: "Gospodarka / Biznes", category: "Gospodarka", desc: "Wywiady z właścicielami największych polskich firm o kulisach prowadzenia biznesu", link: "https://www.youtube.com/@biznesklasa" },
+    { name: "namzalezy.pl", area: "Gospodarka / Biznes", category: "Gospodarka", desc: "Jeden z najstarszych polskich kanałów biznesowych: przedsiębiorczość, inwestowanie i gospodarka", link: "https://www.youtube.com/@namzalezy" },
+    { name: "Biznes Misja", area: "Gospodarka / Biznes", category: "Gospodarka", desc: "Praktyczna wiedza od przedsiębiorców o budowaniu firmy i marki osobistej", link: "https://www.youtube.com/@biznesmisja" },
+    { name: "Nieruchomości bez wątpliwości", area: "Gospodarka / Nieruchomości", category: "Gospodarka", desc: "ABC nieruchomości, wyceny, analizy inwestycji i rozmowy z rzeczoznawcami majątkowymi", link: "https://www.youtube.com/@Nieruchomościbezwątpliwości" },
+
+    // Publicystyka
+    { name: "Didaskalia", area: "Publicystyka / Ekonomia", category: "Publicystyka", desc: "Wyważone, długie wywiady z analitykami, ekonomistami i historykami", link: "https://www.youtube.com/@didaskaliaWP" },
+    { name: "Tomasz Wróblewski", area: "Publicystyka / Gospodarka", category: "Publicystyka", desc: "Komentarz ekonomiczno-polityczny prezesa Warsaw Enterprise Institute o ładzie gospodarczym i społecznym", link: "https://www.youtube.com/channel/UC_1U2qs9zaBrO4_zvvFf2BQ" },
+    { name: "Kanał Zero", area: "Publicystyka / Geopolityka", category: "Publicystyka", desc: "Szybki komentarz do wydarzeń, debaty i sekcja militarna", link: "https://www.youtube.com/@KanalZeroPL" },
+    { name: "Dwie Lewe Ręce", area: "Publicystyka", category: "Publicystyka", desc: "Rynek pracy, przemysł i polityka ze spójnej lewicowej perspektywy", link: "https://www.youtube.com/@dwielewerece" },
+    { name: "Klub Jagielloński", area: "Publicystyka", category: "Publicystyka", desc: "Analizy państwowe, reformy instytucjonalne i rozwój regionalny", link: "https://www.youtube.com/@klub.jagiellonski" },
+    { name: "Rymanowski Live", area: "Publicystyka", category: "Publicystyka", desc: "Pogłębione rozmowy z kluczowymi postaciami życia publicznego", link: "https://www.youtube.com/@RymanowskiLive" },
+    { name: "Stan Wyjątkowy", area: "Publicystyka / Polityka", category: "Publicystyka", desc: "Dziennikarskie kulisy polskiej wiejskiej i rządowej sceny politycznej", link: "https://www.youtube.com/@stan_wyjatkowy" },
+    { name: "Śmiem Wątpić", area: "Publicystyka / Analiza", category: "Publicystyka", desc: "Sceptycyzm, błędy poznawcze oraz krytyczna analiza narracji", link: "https://www.youtube.com/@SmiemWatpic" },
+    { name: "Imponderabilia", area: "Publicystyka / Wywiady", category: "Publicystyka", desc: "Głębokie wywiady m.in. z ekspertami z różnych dziedzin nauki i polityki", link: "https://www.youtube.com/@ImponderabiliaTV" },
+    { name: "polsatnews.pl", area: "Publicystyka / Wiadomości", category: "Publicystyka", desc: "Oficjalny kanał informacyjny Polsat News: bieżąca polityka, wybory i debaty", link: "https://www.youtube.com/@polsatnewsplofc" },
+    { name: "Czarno na białym TVN24", area: "Publicystyka / Reportaż", category: "Publicystyka", desc: "Dziennikarskie śledztwa i reportaże o aferach, polityce i społeczeństwie", link: "https://www.youtube.com/@czarnonabialymtvn24" },
+
+    // Media alternatywne
+    { name: "Grzegorz Kusz - Agent Specjalny", area: "Media alternatywne / Finanse i zdrowie", category: "Media alternatywne", desc: "Wywiady łączące finanse, geopolitykę, zdrowie i rozwój duchowy w narracji „przebudzenia” i nieufności wobec mediów głównego nurtu", link: "https://www.youtube.com/@GrzegorzKusz" },
+    { name: "Kuba Midel", area: "Media alternatywne / Biznes i motywacja", category: "Media alternatywne", desc: "Rentier, inwestor i trener motywacyjny: nieruchomości, dochód pasywny i marka osobista jako droga do wolności finansowej", link: "https://www.youtube.com/@KubaMidel" },
+    { name: "Phil Konieczny", area: "Media alternatywne / Kryptowaluty", category: "Media alternatywne", desc: "Kryptowaluty, inwestycje i sytuacja na rynkach finansowych z perspektywy niezależnego inwestora", link: "https://www.youtube.com/@PhilKonieczny" },
+    { name: "Mike Satoshi", area: "Media alternatywne / Kryptowaluty", category: "Media alternatywne", desc: "Bitcoin i kryptowaluty dla początkujących: analizy, wiadomości i edukacja inwestycyjna", link: "https://www.youtube.com/@MikeSatoshi" },
+    { name: "Bracia Rodzeń", area: "Media alternatywne / Zdrowie", category: "Media alternatywne", desc: "Lekarze promujący dietę keto/LCHF i posty przerywane jako alternatywę dla standardowych zaleceń żywieniowych", link: "https://www.youtube.com/channel/UC7cBi_PeNQBFzdEh8aWsyAA" },
+    { name: "Milionerstwo by Jan Fijor", area: "Media alternatywne / Ekonomia austriacka", category: "Media alternatywne", desc: "Ekonomia austriacka, złoto i krytyka polityki monetarnej banków centralnych w duchu Rothbarda", link: "https://www.youtube.com/@MilionerstwobyJanFijor" },
+
+    // Polityka
+    { name: "Kancelaria Mentzen", area: "Polityka / Konfederacja", category: "Polityka", desc: "Oficjalny kanał Sławomira Mentzena, posła i lidera Nowej Nadziei — podatki, gospodarka i polityka z perspektywy wolnorynkowej prawicy", link: "https://www.youtube.com/@kancelariamentzen" },
+    { name: "Szymon Hołownia", area: "Polityka / Polska 2050", category: "Polityka", desc: "Oficjalny kanał lidera Polski 2050, byłego marszałka Sejmu — wystąpienia i komentarz z centrum sceny politycznej", link: "https://www.youtube.com/channel/UCYIw9Ig7P-NbeOlP-lRLWNA" },
+    { name: "Przemysław Czarnek", area: "Polityka / Prawo i Sprawiedliwość", category: "Polityka", desc: "Oficjalny kanał posła PiS, byłego ministra edukacji — komentarz z perspektywy prawicy konserwatywnej", link: "https://www.youtube.com/channel/UCFzVpwkx1m8yZshNdAnscJQ" },
+    { name: "Partia Razem", area: "Polityka / Lewica", category: "Polityka", desc: "Oficjalny kanał partii Razem — prawa pracownicze, mieszkalnictwo i ochrona zdrowia z perspektywy lewicy", link: "https://www.youtube.com/@PartiaRazemPL" }
+  ];
+
+  const CODE_PREFIX = {
+    "Geopolityka": "GEO",
+    "Wojskowość": "WOJ",
+    "Ekonomia": "EKO",
+    "Finanse osobiste": "FOS",
+    "Inwestowanie": "INW",
+    "Gospodarka": "GOS",
+    "Publicystyka": "PUB",
+    "Media alternatywne": "ALT",
+    "Polityka": "POL"
+  };
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // porównywanie linków niezależnie od http/https, www., wielkości liter,
+  // końcowego "/" oraz parametrów w URL (np. ?si=... doklejane przez YouTube)
+  function normalizeLink(url) {
+    return String(url)
+      .trim()
+      .toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split(/[?#]/)[0]
+      .replace(/\/+$/, "");
+  }
+
+  // stały identyfikator kanału bazowego, liczony z ORYGINALNEGO linku z RAW_CHANNELS —
+  // dzięki temu edycja linku w formularzu nie "gubi" powiązanej nadpisanej wersji
+  function baseId(ch) {
+    return "base:" + normalizeLink(ch.link);
+  }
+
+  // --- przechowywanie (localStorage z fallbackiem do pamięci sesji) ---
+  const CUSTOM_KEY = "siecObserwacyjna.custom.v1";
+  const OVERRIDES_KEY = "siecObserwacyjna.overrides.v1";
+  const DELETED_KEY = "siecObserwacyjna.deletedBase.v1";
+
+  let storageAvailable = true;
+  try {
+    localStorage.setItem("__storage_test__", "1");
+    localStorage.removeItem("__storage_test__");
+  } catch (e) {
+    storageAvailable = false;
+  }
+
+  let memoryCustom = [];
+  let memoryOverrides = {};
+  let memoryDeletedBase = [];
+
+  function getCustom() {
+    if (!storageAvailable) return memoryCustom;
+    try {
+      const raw = localStorage.getItem(CUSTOM_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return memoryCustom; }
+  }
+  function setCustom(list) {
+    memoryCustom = list;
+    if (!storageAvailable) return;
+    try { localStorage.setItem(CUSTOM_KEY, JSON.stringify(list)); } catch (e) { /* zostaje w pamięci sesji */ }
+  }
+
+  function getOverrides() {
+    if (!storageAvailable) return memoryOverrides;
+    try {
+      const raw = localStorage.getItem(OVERRIDES_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return memoryOverrides; }
+  }
+  function setOverrides(obj) {
+    memoryOverrides = obj;
+    if (!storageAvailable) return;
+    try { localStorage.setItem(OVERRIDES_KEY, JSON.stringify(obj)); } catch (e) { /* zostaje w pamięci sesji */ }
+  }
+
+  function getDeletedBase() {
+    if (!storageAvailable) return memoryDeletedBase;
+    try {
+      const raw = localStorage.getItem(DELETED_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) { return memoryDeletedBase; }
+  }
+  function setDeletedBase(list) {
+    memoryDeletedBase = list;
+    if (!storageAvailable) return;
+    try { localStorage.setItem(DELETED_KEY, JSON.stringify(list)); } catch (e) { /* zostaje w pamięci sesji */ }
+  }
+
+  // --- klucz YouTube Data API v3 + cache rozpoznanych ID kanałów ---
+  const YT_API_KEY_KEY = "siecObserwacyjna.ytApiKey.v1";
+  const CHANNEL_ID_CACHE_KEY = "siecObserwacyjna.channelIdCache.v2";
+  let memoryApiKey = "";
+  let memoryChannelIdCache = {};
+
+  function getApiKey() {
+    if (!storageAvailable) return memoryApiKey;
+    try { return localStorage.getItem(YT_API_KEY_KEY) || ""; } catch (e) { return memoryApiKey; }
+  }
+  function setApiKey(key) {
+    memoryApiKey = key;
+    if (!storageAvailable) return;
+    try { localStorage.setItem(YT_API_KEY_KEY, key); } catch (e) { /* zostaje w pamięci sesji */ }
+  }
+  function getChannelIdCache() {
+    if (!storageAvailable) return memoryChannelIdCache;
+    try {
+      const raw = localStorage.getItem(CHANNEL_ID_CACHE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return memoryChannelIdCache; }
+  }
+  function setChannelIdCache(obj) {
+    memoryChannelIdCache = obj;
+    if (!storageAvailable) return;
+    try { localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(obj)); } catch (e) { /* zostaje w pamięci sesji */ }
+  }
+
+  // --- cache ostatniego wyniku wyszukiwania filmów (unika ponownego pobierania po powrocie do zakładki) ---
+  const VIDEO_CACHE_KEY = "siecObserwacyjna.videoCache.v1";
+  let memoryVideoCache = null;
+
+  function getVideoCache() {
+    if (!storageAvailable) return memoryVideoCache;
+    try {
+      const raw = localStorage.getItem(VIDEO_CACHE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return memoryVideoCache; }
+  }
+  function setVideoCache(data) {
+    memoryVideoCache = data;
+    if (!storageAvailable) return;
+    try { localStorage.setItem(VIDEO_CACHE_KEY, JSON.stringify(data)); } catch (e) { /* zostaje w pamięci sesji */ }
+  }
+  function formatCacheTimestamp(iso) {
+    const date = new Date(iso);
+    const now = new Date();
+    const timeStr = date.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+    if (date.toDateString() === now.toDateString()) return `dzisiaj o ${timeStr}`;
+    const dateStr = date.toLocaleDateString("pl-PL", { day: "numeric", month: "short" });
+    return `${dateStr} o ${timeStr}`;
+  }
+
+  // --- przełącznik jasny / ciemny ---
+  const THEME_KEY = "siecObserwacyjna.theme.v1";
+  const themeToggle = document.getElementById("themeToggle");
+  let currentTheme = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+
+  function applyTheme(theme) {
+    if (theme === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
+      themeToggle.textContent = "☾ Ciemny";
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+      themeToggle.textContent = "☀ Jasny";
+    }
+    currentTheme = theme;
+  }
+  applyTheme(currentTheme);
+
+  themeToggle.addEventListener("click", () => {
+    const next = currentTheme === "light" ? "dark" : "light";
+    applyTheme(next);
+    if (storageAvailable) {
+      try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* motyw działa tylko w tej sesji */ }
+    }
+  });
+
+  // dopisujemy kod sektorowy (np. GEO-07) i łączymy bazę z nadpisaniami/usunięciami/własnymi wpisami
+  function computeChannels() {
+    const overrides = getOverrides();
+    const deletedSet = new Set(getDeletedBase());
+
+    const baseList = RAW_CHANNELS
+      .map(ch => {
+        const id = baseId(ch);
+        const override = overrides[id];
+        const merged = override ? { ...ch, ...override, edited: true } : { ...ch, edited: false };
+        return { ...merged, id, custom: false };
+      })
+      .filter(ch => !deletedSet.has(ch.id));
+
+    const customList = getCustom().map(ch => ({ ...ch, custom: true, edited: false }));
+
+    const combined = [...baseList, ...customList];
+    const counters = {};
+    return combined.map(ch => {
+      counters[ch.category] = (counters[ch.category] || 0) + 1;
+      const prefix = CODE_PREFIX[ch.category] || "GEN";
+      const code = `${prefix}-${String(counters[ch.category]).padStart(2, "0")}`;
+      return { ...ch, code };
+    });
+  }
+  let channels = computeChannels();
+
+  let selectedCategory = "all";
+  let searchQuery = "";
+  let selectedSort = "default"; // "default" | "az" | "za"
+  // Obserwowane trzymane w pamięci sesji (celowo nie zapisywane trwale — to szybki, tymczasowy wybór)
+  const tracked = new Set();
+
+  const gridContainer = document.getElementById("gridContainer");
+  const statsCount = document.getElementById("statsCount");
+  const filterContainer = document.getElementById("filterContainer");
+  const sortContainer = document.getElementById("sortContainer");
+  const searchInput = document.getElementById("searchInput");
+  const restoreBtn = document.getElementById("restoreOriginal");
+
+  // sortowanie alfabetyczne z uwzględnieniem polskich znaków (ą, ć, ę, ł, ń, ó, ś, ź, ż)
+  function sortChannels(list) {
+    if (selectedSort === "az") {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name, "pl", { sensitivity: "base" }));
+    }
+    if (selectedSort === "za") {
+      return [...list].sort((a, b) => b.name.localeCompare(a.name, "pl", { sensitivity: "base" }));
+    }
+    return list; // domyślnie: kolejność bazy (grupowanie wg kategorii / kodu sektora)
+  }
+
+  function passesFilter(ch) {
+    const isTracked = tracked.has(ch.name);
+    if (selectedCategory === "tracked" && !isTracked) return false;
+    const matchesCategory = selectedCategory === "all" || selectedCategory === "tracked" || ch.category === selectedCategory;
+    if (!matchesCategory) return false;
+    if (!searchQuery) return true;
+    return (
+      ch.name.toLowerCase().includes(searchQuery) ||
+      (ch.area || "").toLowerCase().includes(searchQuery) ||
+      ch.desc.toLowerCase().includes(searchQuery) ||
+      ch.code.toLowerCase().includes(searchQuery)
+    );
+  }
+
+  const trackIcon = (active) => `
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="8"></circle>
+      <circle cx="12" cy="12" r="${active ? 2.5 : 1.5}" fill="currentColor" stroke="none"></circle>
+      <line x1="12" y1="2" x2="12" y2="5"></line>
+      <line x1="12" y1="19" x2="12" y2="22"></line>
+      <line x1="2" y1="12" x2="5" y2="12"></line>
+      <line x1="19" y1="12" x2="22" y2="12"></line>
+    </svg>`;
+
+  const editIcon = `
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+    </svg>`;
+
+  function updateRestoreVisibility() {
+    const hasOverrides = Object.keys(getOverrides()).length > 0;
+    const hasDeleted = getDeletedBase().length > 0;
+    restoreBtn.hidden = !(hasOverrides || hasDeleted);
+  }
+
+  function renderGrid() {
+    const filtered = sortChannels(channels.filter(passesFilter));
+
+    if (filtered.length === 0) {
+      gridContainer.innerHTML = `
+        <div class="empty-state">
+          <span class="prompt">&gt;</span> brak wyników — zmień kryteria wyszukiwania lub filtr sektora.
+        </div>`;
+    } else {
+      gridContainer.innerHTML = filtered.map(ch => {
+        const isTracked = tracked.has(ch.name);
+        const isCustom = !!ch.custom;
+        const isEdited = !!ch.edited;
+        const badge = isCustom
+          ? `<div class="custom-badge">własny wpis</div>`
+          : (isEdited ? `<div class="edited-badge">edytowano</div>` : "");
+        return `
+        <div class="card${isCustom ? " custom-card" : ""}${isEdited ? " edited-card" : ""}">
+          <div class="card-header">
+            <span class="card-code">${esc(ch.code)}</span>
+            <div class="card-header-actions">
+              <button class="delete-btn" data-id="${esc(ch.id)}" aria-label="Usuń kanał ${esc(ch.name)} z bazy" title="Usuń">✕</button>
+              <button class="edit-btn" data-id="${esc(ch.id)}" aria-label="Edytuj kanał ${esc(ch.name)}" title="Edytuj">${editIcon}</button>
+              <button class="track-btn" data-name="${esc(ch.name)}" aria-pressed="${isTracked}" aria-label="${isTracked ? "Przestań obserwować" : "Obserwuj"} kanał ${esc(ch.name)}">
+                ${trackIcon(isTracked)}
+              </button>
+            </div>
+          </div>
+          ${badge}
+          <div class="card-area">${esc(ch.area || ch.category)}</div>
+          <h3 class="card-title">${esc(ch.name)}</h3>
+          <p class="card-desc">${esc(ch.desc)}</p>
+          <a href="${esc(ch.link)}" target="_blank" rel="noopener noreferrer" class="card-link">Otwórz kanał →</a>
+        </div>`;
+      }).join("");
+    }
+
+    statsCount.textContent = `Wyświetlono ${filtered.length} / ${channels.length} rekordów w bazie`;
+  }
+
+  searchInput.addEventListener("input", (e) => {
+    searchQuery = e.target.value.trim().toLowerCase();
+    renderGrid();
+  });
+
+  filterContainer.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    filterContainer.querySelectorAll(".filter-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
+    selectedCategory = btn.dataset.category;
+    renderGrid();
+  });
+
+  sortContainer.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    sortContainer.querySelectorAll(".filter-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
+    selectedSort = btn.dataset.sort;
+    renderGrid();
+  });
+
+  gridContainer.addEventListener("click", (e) => {
+    const trackBtn = e.target.closest(".track-btn");
+    if (trackBtn) {
+      const name = trackBtn.dataset.name;
+      if (tracked.has(name)) tracked.delete(name);
+      else tracked.add(name);
+      renderGrid();
+      return;
+    }
+    const editBtn = e.target.closest(".edit-btn");
+    if (editBtn) {
+      const ch = channels.find(c => c.id === editBtn.dataset.id);
+      if (ch) openFormModal(ch);
+      return;
+    }
+    const delBtn = e.target.closest(".delete-btn");
+    if (delBtn) {
+      const ch = channels.find(c => c.id === delBtn.dataset.id);
+      if (ch) openConfirm({ type: ch.custom ? "custom" : "base", id: ch.id, name: ch.name });
+    }
+  });
+
+  // --- modal dodawania / edycji kanału ---
+  const openAddModalBtn = document.getElementById("openAddModal");
+  const modalOverlay = document.getElementById("addModalOverlay");
+  const modalTitleEl = document.getElementById("addModalTitle");
+  const modalCloseBtn = document.getElementById("addModalClose");
+  const modalCancelBtn = document.getElementById("addModalCancel");
+  const addForm = document.getElementById("addChannelForm");
+  const addFormError = document.getElementById("addFormError");
+  const addSubmitBtn = document.getElementById("addSubmitBtn");
+  const addLinkInput = document.getElementById("addLink");
+  const autofillStatus = document.getElementById("autofillStatus");
+  const storageNote = document.getElementById("storageNote");
+
+  storageNote.textContent = storageAvailable
+    ? "zmiany w bazie zapisywane są lokalnie w tej przeglądarce"
+    : "podgląd bez trwałego zapisu — pobierz plik i otwórz lokalnie, aby zmiany zostawały na stałe";
+
+  let editingContext = null; // null = dodawanie nowego; { id, isCustom } = edycja istniejącego
+
+  function onEscapeAdd(e) { if (e.key === "Escape") closeFormModal(); }
+
+  function openFormModal(ch) {
+    addFormError.hidden = true;
+    resetAutofillStatus();
+    if (ch) {
+      editingContext = { id: ch.id, isCustom: !!ch.custom };
+      modalTitleEl.textContent = `> edytuj_wpis // ${ch.name}`;
+      addSubmitBtn.textContent = "Zapisz zmiany";
+      document.getElementById("addName").value = ch.name;
+      document.getElementById("addCategory").value = ch.category;
+      document.getElementById("addArea").value = ch.area || "";
+      document.getElementById("addDesc").value = ch.desc;
+      document.getElementById("addLink").value = ch.link;
+    } else {
+      editingContext = null;
+      modalTitleEl.textContent = "> nowy_wpis // dodaj kanał";
+      addSubmitBtn.textContent = "Zapisz kanał";
+      addForm.reset();
+    }
+    modalOverlay.hidden = false;
+    addLinkInput.focus();
+    document.addEventListener("keydown", onEscapeAdd);
+  }
+  function closeFormModal() {
+    modalOverlay.hidden = true;
+    addForm.reset();
+    addFormError.hidden = true;
+    resetAutofillStatus();
+    editingContext = null;
+    document.removeEventListener("keydown", onEscapeAdd);
+  }
+
+  // --- autouzupełnianie pól na podstawie wklejonego linku (korzysta z tego samego klucza API co "Najnowsze filmy") ---
+  const CATEGORY_KEYWORDS = {
+    "Wojskowość": ["wojsko", "wojn", "militar", "obronnoś", "zbrojeni", "armi", "żołnierz", "uzbrojeni", " mon ", "obrona narodowa", "defence", "defense"],
+    "Geopolityka": ["geopolityk", "polityka zagraniczna", "dyplomacj", "nato", "konflikt", "supermocarstw", "relacje międzynarodow", "stosunki międzynarodow", "geostrateg"],
+    "Ekonomia": ["makroekonomi", "ekonomi", "bank centraln", "nbp", "stopy procentow", "polityka pieniężn", "trader", "trading", "system bankow", "cykl gospodarcz"],
+    "Finanse osobiste": ["finanse osobiste", "budżet domow", "domowy budżet", "oszczędzani", "oszczędnoś", "oszczędza", "kredyt", "ike", "ikze", "niezależność finansow", "wolność finansow", "pułapk"],
+    "Inwestowanie": ["inwestow", "inwestor", "inwestycj", "portfel inwestycyjn", "akcj", "obligacj", "etf", "dywidend", "spół", "gpw", "gield", "giełd", "surowc"],
+    "Gospodarka": ["gospodark", "biznes", "przedsiębior", "nieruchomoś", "energetyk", "przemysł", "firm"],
+    "Publicystyka": ["publicystyk", "wywiad", "debat", "opini", "podcast", "rozmow", "komentarz"],
+    "Media alternatywne": ["matrix", "świadomoś", "przebudź", "obudź się", "duchow", "medycyna naturaln", "media głównego nurtu", "ukryta prawda", "wolny myśliciel"],
+    "Polityka": ["posł", "poseł", "sejm", "senat", "parti", "premier", "minist", "wybor", "kancelaria", "marszałek", "prezydent"]
+  };
+
+  function guessCategory(text) {
+    const lower = text.toLowerCase();
+    let best = null, bestScore = 0;
+    for (const cat in CATEGORY_KEYWORDS) {
+      let score = 0;
+      CATEGORY_KEYWORDS[cat].forEach(kw => { if (lower.includes(kw)) score++; });
+      if (score > bestScore) { bestScore = score; best = cat; }
+    }
+    return best;
+  }
+
+  async function fetchChannelSnippet(channelId, apiKey) {
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(channelId)}&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const err = new Error((errBody.error && errBody.error.message) || res.statusText);
+      err.httpStatus = res.status;
+      throw err;
+    }
+    const data = await res.json();
+    const item = data.items && data.items[0];
+    if (!item) return null;
+    return {
+      title: item.snippet && item.snippet.title,
+      description: item.snippet && item.snippet.description
+    };
+  }
+
+  function setAutofillStatus(text, kind) {
+    autofillStatus.textContent = text;
+    autofillStatus.hidden = !text;
+    autofillStatus.classList.remove("is-success", "is-error");
+    if (kind) autofillStatus.classList.add(kind === "success" ? "is-success" : "is-error");
+  }
+  function resetAutofillStatus() { setAutofillStatus("", null); }
+
+  let autofillDebounceTimer = null;
+  let autofillRequestId = 0;
+
+  async function autofillFromLink() {
+    const link = addLinkInput.value.trim();
+    if (!link || !/^https?:\/\//i.test(link)) { resetAutofillStatus(); return; }
+
+    const apiKey = getApiKey();
+    if (!apiKey) {
+      setAutofillStatus("Zapisz klucz YouTube API w zakładce „Najnowsze filmy”, aby automatycznie uzupełniać dane kanału.", "error");
+      return;
+    }
+
+    const requestId = ++autofillRequestId; // odrzucamy przestarzałe odpowiedzi, gdy użytkownik pisze dalej
+    setAutofillStatus("Rozpoznaję kanał…", null);
+
+    try {
+      const info = await resolveChannelInfo({ link }, apiKey);
+      if (requestId !== autofillRequestId) return;
+      if (!info) {
+        setAutofillStatus("Nie udało się rozpoznać kanału z tego linku — uzupełnij pola ręcznie.", "error");
+        return;
+      }
+      const snippet = await fetchChannelSnippet(info.id, apiKey);
+      if (requestId !== autofillRequestId) return;
+      if (!snippet) {
+        setAutofillStatus("Nie udało się pobrać danych kanału — uzupełnij pola ręcznie.", "error");
+        return;
+      }
+
+      const nameField = document.getElementById("addName");
+      const descField = document.getElementById("addDesc");
+      const categoryField = document.getElementById("addCategory");
+      const areaField = document.getElementById("addArea");
+
+      if (!nameField.value.trim() && snippet.title) nameField.value = snippet.title;
+
+      if (!descField.value.trim() && snippet.description) {
+        const firstLine = snippet.description.split("\n")[0].trim();
+        descField.value = firstLine.length > 150 ? firstLine.slice(0, 147) + "…" : firstLine;
+      }
+
+      const guessed = guessCategory(`${snippet.title || ""} ${snippet.description || ""}`);
+      if (guessed && !categoryField.value) {
+        categoryField.value = guessed;
+        if (!areaField.value.trim()) areaField.value = guessed;
+      }
+
+      setAutofillStatus(`✓ Rozpoznano: ${snippet.title}. Sprawdź pola poniżej, zwłaszcza kategorię — to tylko sugestia.`, "success");
+    } catch (err) {
+      if (requestId !== autofillRequestId) return;
+      setAutofillStatus(`Nie udało się pobrać danych kanału (${err.message}).`, "error");
+    }
+  }
+
+  addLinkInput.addEventListener("input", () => {
+    if (editingContext) return; // autouzupełnianie tylko przy dodawaniu nowego kanału
+    clearTimeout(autofillDebounceTimer);
+    autofillDebounceTimer = setTimeout(autofillFromLink, 700);
+  });
+
+  openAddModalBtn.addEventListener("click", () => openFormModal(null));
+  modalCloseBtn.addEventListener("click", closeFormModal);
+  modalCancelBtn.addEventListener("click", closeFormModal);
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) closeFormModal();
+  });
+
+  addForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("addName").value.trim();
+    const category = document.getElementById("addCategory").value;
+    const area = document.getElementById("addArea").value.trim();
+    const desc = document.getElementById("addDesc").value.trim();
+    const link = document.getElementById("addLink").value.trim();
+
+    if (!name || !category || !desc || !link) {
+      addFormError.textContent = "Uzupełnij wszystkie wymagane pola (*).";
+      addFormError.hidden = false;
+      return;
+    }
+    if (!/^https?:\/\//i.test(link)) {
+      addFormError.textContent = "Link musi zaczynać się od http:// lub https://";
+      addFormError.hidden = false;
+      return;
+    }
+
+    const normalizedNewLink = normalizeLink(link);
+    const duplicate = channels.find(ch =>
+      normalizeLink(ch.link) === normalizedNewLink &&
+      !(editingContext && ch.id === editingContext.id)
+    );
+    if (duplicate) {
+      addFormError.textContent = `Ten kanał jest już w bazie: "${duplicate.name}" (${duplicate.code}).`;
+      addFormError.hidden = false;
+      return;
+    }
+
+    if (!editingContext) {
+      // dodanie nowego własnego kanału
+      const newChannel = {
+        id: (crypto.randomUUID ? crypto.randomUUID() : `c-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+        name, category, area: area || category, desc, link, custom: true
+      };
+      const custom = getCustom();
+      custom.push(newChannel);
+      setCustom(custom);
+    } else if (editingContext.isCustom) {
+      // edycja własnego kanału
+      const custom = getCustom().map(c =>
+        c.id === editingContext.id ? { ...c, name, category, area: area || category, desc, link } : c
+      );
+      setCustom(custom);
+    } else {
+      // edycja kanału bazowego -> zapisujemy nadpisanie pod stałym id oryginału
+      const overrides = getOverrides();
+      overrides[editingContext.id] = { name, category, area: area || category, desc, link };
+      setOverrides(overrides);
+    }
+
+    channels = computeChannels();
+    closeFormModal();
+    updateRestoreVisibility();
+    renderGrid();
+  });
+
+  // --- modal potwierdzenia usunięcia / przywrócenia ---
+  const confirmOverlay = document.getElementById("confirmOverlay");
+  const confirmMessageEl = document.getElementById("confirmMessage");
+  const confirmOkBtn = document.getElementById("confirmOk");
+  const confirmCancelBtn = document.getElementById("confirmCancel");
+  const confirmCloseBtn = document.getElementById("confirmClose");
+
+  let pendingAction = null;
+  let pendingImport = null;
+
+  function onEscapeConfirm(e) { if (e.key === "Escape") closeConfirm(); }
+
+  function openConfirm(action) {
+    pendingAction = action;
+    if (action.type === "restore") {
+      confirmMessageEl.innerHTML = "Czy na pewno chcesz przywrócić oryginalną bazę? Cofniesz wszystkie edycje i usunięcia kanałów bazowych. Własne dodane kanały zostaną bez zmian.";
+      confirmOkBtn.textContent = "Przywróć oryginał";
+    } else if (action.type === "import") {
+      confirmMessageEl.innerHTML = `Czy na pewno chcesz zaimportować dane z pliku <strong>${esc(action.fileName)}</strong>? Nadpisze to Twoje obecne własne kanały, edycje i usunięcia: ` +
+        `${action.counts.custom} własnych kanałów, ${action.counts.overrides} edycji, ${action.counts.deleted} usunięć zastąpi zawartość pliku. Tej operacji nie można cofnąć.`;
+      confirmOkBtn.textContent = "Importuj i nadpisz";
+    } else {
+      confirmMessageEl.innerHTML = `Czy na pewno chcesz usunąć kanał <strong>${esc(action.name)}</strong> z bazy? Tej operacji nie można cofnąć.`;
+      confirmOkBtn.textContent = "Usuń na stałe";
+    }
+    confirmOverlay.hidden = false;
+    document.addEventListener("keydown", onEscapeConfirm);
+  }
+  function closeConfirm() {
+    confirmOverlay.hidden = true;
+    pendingAction = null;
+    document.removeEventListener("keydown", onEscapeConfirm);
+  }
+
+  confirmCancelBtn.addEventListener("click", closeConfirm);
+  confirmCloseBtn.addEventListener("click", closeConfirm);
+  confirmOverlay.addEventListener("click", (e) => {
+    if (e.target === confirmOverlay) closeConfirm();
+  });
+
+  confirmOkBtn.addEventListener("click", () => {
+    if (!pendingAction) return;
+    if (pendingAction.type === "custom") {
+      setCustom(getCustom().filter(c => c.id !== pendingAction.id));
+    } else if (pendingAction.type === "base") {
+      const deleted = getDeletedBase();
+      if (!deleted.includes(pendingAction.id)) deleted.push(pendingAction.id);
+      setDeletedBase(deleted);
+      const overrides = getOverrides();
+      if (overrides[pendingAction.id]) {
+        delete overrides[pendingAction.id];
+        setOverrides(overrides);
+      }
+    } else if (pendingAction.type === "restore") {
+      setOverrides({});
+      setDeletedBase([]);
+    } else if (pendingAction.type === "import" && pendingImport) {
+      setCustom(pendingImport.custom);
+      setOverrides(pendingImport.overrides);
+      setDeletedBase(pendingImport.deletedBase);
+      applyTheme(pendingImport.theme);
+      if (storageAvailable) {
+        try { localStorage.setItem(THEME_KEY, pendingImport.theme); } catch (e) { /* motyw działa tylko w tej sesji */ }
+      }
+      pendingImport = null;
+    }
+    channels = computeChannels();
+    closeConfirm();
+    updateRestoreVisibility();
+    renderGrid();
+  });
+
+  restoreBtn.addEventListener("click", () => {
+    openConfirm({ type: "restore" });
+  });
+
+  // --- eksport / import danych ---
+  const exportDataBtn = document.getElementById("exportDataBtn");
+  const importDataBtn = document.getElementById("importDataBtn");
+  const importFileInput = document.getElementById("importFileInput");
+  const dataIoError = document.getElementById("dataIoError");
+
+  function exportData() {
+    const payload = {
+      app: "siecObserwacyjna",
+      exportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      theme: currentTheme,
+      custom: getCustom(),
+      overrides: getOverrides(),
+      deletedBase: getDeletedBase()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `siec-obserwacyjna-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  exportDataBtn.addEventListener("click", exportData);
+
+  importDataBtn.addEventListener("click", () => importFileInput.click());
+
+  importFileInput.addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    importFileInput.value = ""; // pozwala wybrać ten sam plik ponownie
+    if (!file) return;
+    dataIoError.hidden = true;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("plik nie zawiera poprawnego obiektu JSON");
+      }
+
+      // lekka walidacja — odsiewamy niepoprawne wpisy zamiast odrzucać cały plik
+      const customList = Array.isArray(parsed.custom)
+        ? parsed.custom.filter(c => c && typeof c.name === "string" && typeof c.category === "string" && typeof c.desc === "string" && typeof c.link === "string")
+        : [];
+      const overridesObj = (parsed.overrides && typeof parsed.overrides === "object" && !Array.isArray(parsed.overrides)) ? parsed.overrides : {};
+      const deletedList = Array.isArray(parsed.deletedBase) ? parsed.deletedBase.filter(x => typeof x === "string") : [];
+      const themeVal = parsed.theme === "light" ? "light" : "dark";
+
+      pendingImport = { custom: customList, overrides: overridesObj, deletedBase: deletedList, theme: themeVal };
+
+      openConfirm({
+        type: "import",
+        fileName: file.name,
+        counts: { custom: customList.length, overrides: Object.keys(overridesObj).length, deleted: deletedList.length }
+      });
+    } catch (err) {
+      dataIoError.textContent = `Nie udało się wczytać pliku: ${err.message}.`;
+      dataIoError.hidden = false;
+    }
+  });
+
+  // --- rozpoznawanie ID kanału z zapisanego linku ---
+  function extractChannelRef(link) {
+    // \p{L}/\p{N} (flaga u) zamiast \w — \w łapie tylko ASCII i ucinałby handle
+    // zawierające polskie znaki (np. @Nieruchomościbezwątpliwości na "@Nieruchomo")
+    let m = link.match(/\/channel\/(UC[\w-]{10,})/i);
+    if (m) return { type: "id", value: m[1] };
+    m = link.match(/\/@([\p{L}\p{N}._-]+)/u);
+    if (m) return { type: "handle", value: "@" + m[1] };
+    m = link.match(/\/user\/([\p{L}\p{N}._-]+)/iu);
+    if (m) return { type: "username", value: m[1] };
+    m = link.match(/youtube\.com\/([\p{L}\p{N}._-]+)\/?(?:$|\?)/iu);
+    if (m && !["watch", "results", "feeds", "channel", "playlist"].includes(m[1].toLowerCase())) {
+      return { type: "handle", value: "@" + m[1] };
+    }
+    return { type: "unknown", value: null };
+  }
+
+  // zwraca { id, thumbnail } — miniaturkę dociągamy tym samym zapytaniem co ID (part= nic nie kosztuje dodatkowo w limicie API)
+  async function resolveChannelInfo(ch, apiKey) {
+    const key = normalizeLink(ch.link);
+    const cache = getChannelIdCache();
+    if (cache[key] && cache[key].id) return cache[key];
+
+    const ref = extractChannelRef(ch.link);
+    if (ref.type === "unknown") return null;
+
+    let url;
+    if (ref.type === "id") {
+      url = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${encodeURIComponent(ref.value)}&key=${encodeURIComponent(apiKey)}`;
+    } else {
+      const param = ref.type === "handle"
+        ? `forHandle=${encodeURIComponent(ref.value)}`
+        : `forUsername=${encodeURIComponent(ref.value)}`;
+      url = `https://www.googleapis.com/youtube/v3/channels?part=id,snippet&${param}&key=${encodeURIComponent(apiKey)}`;
+    }
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const err = new Error((errBody.error && errBody.error.message) || res.statusText);
+      err.httpStatus = res.status;
+      throw err;
+    }
+    const data = await res.json();
+    const item = data.items && data.items[0];
+    if (!item) return null;
+
+    const info = {
+      id: ref.type === "id" ? ref.value : item.id,
+      thumbnail: item.snippet && item.snippet.thumbnails &&
+        ((item.snippet.thumbnails.default || {}).url)
+    };
+    cache[key] = info;
+    setChannelIdCache(cache);
+    return info;
+  }
+
+  async function fetchUploads(channelId, apiKey) {
+    const uploadsId = "UU" + channelId.slice(2);
+    const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(uploadsId)}&key=${encodeURIComponent(apiKey)}`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const err = new Error((errBody.error && errBody.error.message) || res.statusText);
+      err.httpStatus = res.status;
+      throw err;
+    }
+    const data = await res.json();
+    return (data.items || [])
+      .map(it => ({
+        videoId: it.snippet && it.snippet.resourceId && it.snippet.resourceId.videoId,
+        title: it.snippet && it.snippet.title,
+        publishedAt: it.snippet && it.snippet.publishedAt,
+        thumbnail: it.snippet && it.snippet.thumbnails &&
+          ((it.snippet.thumbnails.medium || it.snippet.thumbnails.default || {}).url)
+      }))
+      .filter(v => v.videoId && v.publishedAt);
+  }
+
+  // zamienia czas trwania w formacie ISO 8601 (np. "PT4M13S") na liczbę sekund
+  function parseIsoDuration(iso) {
+    if (!iso) return null;
+    const m = iso.match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/);
+    if (!m) return null;
+    const h = parseInt(m[1] || "0", 10);
+    const min = parseInt(m[2] || "0", 10);
+    const s = parseInt(m[3] || "0", 10);
+    return h * 3600 + min * 60 + s;
+  }
+
+  // Data API nie ma pola "to jest Short" ani "to jest zwykły film" wprost, więc
+  // odsiewamy: liveBroadcastContent (oficjalne pole -> transmisje na żywo i nadchodzące premiery)
+  // oraz krótki czas trwania (najlepsze dostępne przybliżenie Shortów — YouTube uznaje za
+  // Short filmy do ok. 3 minut). Batche po 50 ID na zapytanie, więc tanie w jednostkach API.
+  async function fetchVideoDetails(videoIds, apiKey) {
+    const detailsMap = {};
+    for (let i = 0; i < videoIds.length; i += 50) {
+      const batch = videoIds.slice(i, i + 50);
+      if (batch.length === 0) continue;
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${batch.join(",")}&key=${encodeURIComponent(apiKey)}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        const err = new Error((errBody.error && errBody.error.message) || res.statusText);
+        err.httpStatus = res.status;
+        throw err;
+      }
+      const data = await res.json();
+      (data.items || []).forEach(item => {
+        detailsMap[item.id] = {
+          liveBroadcastContent: item.snippet && item.snippet.liveBroadcastContent,
+          durationSeconds: parseIsoDuration(item.contentDetails && item.contentDetails.duration)
+        };
+      });
+    }
+    return detailsMap;
+  }
+
+  async function runWithConcurrency(items, limit, worker) {
+    let idx = 0;
+    async function next() {
+      while (idx < items.length) {
+        const current = idx++;
+        await worker(items[current], current);
+      }
+    }
+    const runners = Array.from({ length: Math.min(limit, items.length) }, next);
+    await Promise.all(runners);
+  }
+
+  function formatRelativeDate(iso) {
+    const date = new Date(iso);
+    const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+    if (days <= 0) return "dziś";
+    if (days === 1) return "wczoraj";
+    if (days < 30) return `${days} dni temu`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} mies. temu`;
+    return date.toLocaleDateString("pl-PL", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function formatDuration(seconds) {
+    if (seconds === null || seconds === undefined || isNaN(seconds)) return "";
+    const total = Math.max(0, Math.round(seconds));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  function sortVideos(list) {
+    const sorted = [...list];
+    if (selectedVideoSort === "oldest") {
+      sorted.sort((a, b) => new Date(a.publishedAt) - new Date(b.publishedAt));
+    } else if (selectedVideoSort === "channel") {
+      sorted.sort((a, b) => a.channelName.localeCompare(b.channelName, "pl", { sensitivity: "base" }));
+    } else if (selectedVideoSort === "longest") {
+      sorted.sort((a, b) => (b.durationSeconds || 0) - (a.durationSeconds || 0));
+    } else {
+      sorted.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    }
+    return sorted;
+  }
+
+  // --- widok "Najnowsze filmy": elementy i stan ---
+  const tabCatalog = document.getElementById("tabCatalog");
+  const tabVideos = document.getElementById("tabVideos");
+  const tabExcluded = document.getElementById("tabExcluded");
+  const catalogView = document.getElementById("catalogView");
+  const videosView = document.getElementById("videosView");
+  const excludedView = document.getElementById("excludedView");
+  const excludedContainer = document.getElementById("excludedContainer");
+  const excludedStats = document.getElementById("excludedStats");
+  const apiKeyBlock = document.getElementById("apiKeyBlock");
+  const apiKeyInput = document.getElementById("apiKeyInput");
+  const apiKeySavedNote = document.getElementById("apiKeySavedNote");
+  const saveApiKeyBtn = document.getElementById("saveApiKeyBtn");
+  const changeApiKeyBtn = document.getElementById("changeApiKeyBtn");
+  const rangeContainer = document.getElementById("rangeContainer");
+  const customDaysRow = document.getElementById("customDaysRow");
+  const customDaysInput = document.getElementById("customDaysInput");
+  const loadVideosBtn = document.getElementById("loadVideosBtn");
+  const videosProgress = document.getElementById("videosProgress");
+  const progressTrack = document.getElementById("progressTrack");
+  const progressFill = document.getElementById("progressFill");
+  const videosError = document.getElementById("videosError");
+  const videosStats = document.getElementById("videosStats");
+  const videosSkipped = document.getElementById("videosSkipped");
+  const videoFilterBlock = document.getElementById("videoFilterBlock");
+  const videoChannelFilter = document.getElementById("videoChannelFilter");
+  const videoFilterCount = document.getElementById("videoFilterCount");
+  const videoCategoryFilter = document.getElementById("videoCategoryFilter");
+  const videoSortContainer = document.getElementById("videoSortContainer");
+  const videosContainer = document.getElementById("videosContainer");
+
+  let selectedVideoCategory = "all";
+  let selectedVideoSort = "newest"; // "newest" | "oldest" | "channel" | "longest"
+
+  let selectedRangeType = "months"; // "months" | "days"
+  let selectedMonths = 3;
+  let selectedDays = 30;
+  let fetchedVideos = []; // pełny wynik ostatniego pobrania (przed filtrem po nazwie kanału)
+  let excludedVideos = []; // Shorty, transmisje na żywo i nadchodzące premiery — pokazywane w osobnej zakładce
+
+  function describeRange() {
+    return selectedRangeType === "days" ? `${selectedDays} dni` : `${selectedMonths} mies.`;
+  }
+
+  function switchView(view) {
+    catalogView.hidden = view !== "catalog";
+    videosView.hidden = view !== "videos";
+    excludedView.hidden = view !== "excluded";
+    tabCatalog.classList.toggle("active", view === "catalog");
+    tabVideos.classList.toggle("active", view === "videos");
+    tabExcluded.classList.toggle("active", view === "excluded");
+    tabCatalog.setAttribute("aria-selected", String(view === "catalog"));
+    tabVideos.setAttribute("aria-selected", String(view === "videos"));
+    tabExcluded.setAttribute("aria-selected", String(view === "excluded"));
+  }
+  tabCatalog.addEventListener("click", () => switchView("catalog"));
+  tabVideos.addEventListener("click", () => switchView("videos"));
+  tabExcluded.addEventListener("click", () => switchView("excluded"));
+
+  function refreshApiKeyUI() {
+    const key = getApiKey();
+    apiKeyBlock.hidden = !!key;
+    apiKeySavedNote.hidden = !key;
+  }
+  refreshApiKeyUI();
+
+  saveApiKeyBtn.addEventListener("click", () => {
+    const val = apiKeyInput.value.trim();
+    if (!val) return;
+    setApiKey(val);
+    apiKeyInput.value = "";
+    refreshApiKeyUI();
+  });
+  changeApiKeyBtn.addEventListener("click", () => {
+    apiKeyBlock.hidden = false;
+    apiKeySavedNote.hidden = true;
+  });
+
+  rangeContainer.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    rangeContainer.querySelectorAll(".filter-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
+
+    if (btn.dataset.rangeType === "days") {
+      selectedRangeType = "days";
+      customDaysRow.hidden = false;
+      customDaysInput.focus();
+    } else {
+      selectedRangeType = "months";
+      selectedMonths = Number(btn.dataset.months);
+      customDaysRow.hidden = true;
+    }
+  });
+
+  customDaysInput.addEventListener("input", () => {
+    const val = parseInt(customDaysInput.value, 10);
+    if (!isNaN(val) && val > 0) selectedDays = val;
+  });
+
+  async function loadLatestVideos() {
+    const apiKey = getApiKey();
+    videosError.hidden = true;
+    if (!apiKey) {
+      videosError.textContent = "Najpierw zapisz swój klucz YouTube Data API v3 powyżej.";
+      videosError.hidden = false;
+      return;
+    }
+    if (selectedRangeType === "days") {
+      const val = parseInt(customDaysInput.value, 10);
+      if (isNaN(val) || val <= 0) {
+        videosError.textContent = "Podaj poprawną liczbę dni wstecz (liczba całkowita większa od 0).";
+        videosError.hidden = false;
+        return;
+      }
+      selectedDays = val;
+    }
+
+    loadVideosBtn.disabled = true;
+    videosContainer.innerHTML = "";
+    videosStats.hidden = true;
+    videosSkipped.hidden = true;
+    videoFilterBlock.hidden = true;
+    videoChannelFilter.value = "";
+    progressTrack.hidden = false;
+    progressFill.style.width = "0%";
+
+    const cutoff = new Date();
+    if (selectedRangeType === "days") {
+      cutoff.setDate(cutoff.getDate() - selectedDays);
+    } else {
+      cutoff.setMonth(cutoff.getMonth() - selectedMonths);
+    }
+
+    const list = channels.slice();
+    let done = 0;
+    const skipped = [];
+    const allVideos = [];
+    let fatalError = null;
+
+    videosProgress.textContent = `Pobieranie… 0 / ${list.length} kanałów`;
+
+    await runWithConcurrency(list, 6, async (ch) => {
+      if (!fatalError) {
+        try {
+          const info = await resolveChannelInfo(ch, apiKey);
+          if (!info) {
+            skipped.push(ch.name + " (nie udało się rozpoznać kanału z linku)");
+          } else {
+            const videos = await fetchUploads(info.id, apiKey);
+            videos.forEach(v => {
+              if (new Date(v.publishedAt) >= cutoff) {
+                allVideos.push({
+                  ...v,
+                  channelName: ch.name,
+                  channelCode: ch.code,
+                  channelCategory: ch.category,
+                  channelThumbnail: info.thumbnail
+                });
+              }
+            });
+          }
+        } catch (err) {
+          if (err && (err.httpStatus === 403 || err.httpStatus === 400)) {
+            fatalError = err.message || "Błąd klucza API lub przekroczony dzienny limit zapytań.";
+          } else {
+            skipped.push(ch.name + " (błąd pobierania danych)");
+          }
+        }
+      }
+      done++;
+      videosProgress.textContent = `Pobieranie… ${done} / ${list.length} kanałów`;
+      progressFill.style.width = `${Math.round((done / list.length) * 100)}%`;
+    });
+
+    loadVideosBtn.disabled = false;
+    progressTrack.hidden = true;
+
+    if (fatalError) {
+      videosProgress.textContent = "";
+      videosError.textContent = `Błąd YouTube API: ${fatalError}`;
+      videosError.hidden = false;
+      return;
+    }
+
+    // druga faza: sprawdzamy typ każdego filmu i dzielimy na "zwykłe" oraz Shorty/transmisje
+    // (te drugie trafiają do osobnej zakładki zamiast być po prostu wyrzucane)
+    const SHORTS_MAX_SECONDS = 183; // ok. 3 minuty — obecny oficjalny limit YouTube Shorts
+    let videosToShow = allVideos;
+    let excludedList = [];
+
+    if (allVideos.length > 0) {
+      videosProgress.textContent = `Sprawdzanie typu ${allVideos.length} filmów (rozdzielanie Shortów i transmisji)…`;
+      try {
+        const detailsMap = await fetchVideoDetails(allVideos.map(v => v.videoId), apiKey);
+        videosToShow = [];
+        allVideos.forEach(v => {
+          const d = detailsMap[v.videoId];
+          const withDuration = { ...v, durationSeconds: (d && d.durationSeconds) ?? null };
+          if (!d) {
+            videosToShow.push(withDuration); // brak danych o filmie (np. usunięty w międzyczasie) — zachowawczo w głównej liście
+          } else if (d.liveBroadcastContent === "live") {
+            excludedList.push({ ...withDuration, excludeReason: "live" });
+          } else if (d.liveBroadcastContent === "upcoming") {
+            excludedList.push({ ...withDuration, excludeReason: "upcoming" });
+          } else if (withDuration.durationSeconds !== null && withDuration.durationSeconds <= SHORTS_MAX_SECONDS) {
+            excludedList.push({ ...withDuration, excludeReason: "short" });
+          } else {
+            videosToShow.push(withDuration);
+          }
+        });
+      } catch (err) {
+        videosError.textContent = `Nie udało się rozdzielić Shortów/transmisji (${err.message}) — pokazuję pełną listę bez tego podziału.`;
+        videosError.hidden = false;
+      }
+    }
+
+    videosToShow.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    excludedList.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
+    fetchedVideos = videosToShow;
+    excludedVideos = excludedList;
+
+    videosProgress.textContent = "";
+    videosStats.hidden = false;
+    videosStats.textContent = `Znaleziono ${fetchedVideos.length} filmów z ostatnich ${describeRange()}` +
+      (excludedVideos.length > 0 ? ` · ${excludedVideos.length} Shortów/transmisji w osobnej zakładce` : "") +
+      ` · ${list.length - skipped.length} / ${list.length} kanałów odpytanych poprawnie`;
+
+    if (skipped.length > 0) {
+      videosSkipped.hidden = false;
+      videosSkipped.textContent = `Pominięto ${skipped.length}: ` + skipped.join("; ");
+    }
+
+    videoFilterBlock.hidden = fetchedVideos.length === 0;
+    renderVideos();
+    renderExcluded();
+
+    setVideoCache({
+      fetchedAt: new Date().toISOString(),
+      rangeType: selectedRangeType,
+      rangeMonths: selectedMonths,
+      rangeDays: selectedDays,
+      videos: fetchedVideos,
+      excluded: excludedVideos
+    });
+  }
+
+  function excludeReasonLabel(reason) {
+    if (reason === "live") return "NA ŻYWO";
+    if (reason === "upcoming") return "NADCHODZĄCY";
+    if (reason === "short") return "SHORT";
+    return "";
+  }
+
+  function renderVideoCardsHtml(list) {
+    return list.map(v => `
+      <div class="video-card">
+        <div class="video-thumb-wrap">
+          ${v.thumbnail ? `<img class="video-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">` : ""}
+          ${v.excludeReason ? `<span class="video-type-badge">${excludeReasonLabel(v.excludeReason)}</span>` : ""}
+          ${v.durationSeconds ? `<span class="video-duration">${formatDuration(v.durationSeconds)}</span>` : ""}
+        </div>
+        <div class="video-body">
+          <div class="video-channel">
+            ${v.channelThumbnail ? `<img class="channel-avatar" src="${esc(v.channelThumbnail)}" alt="" loading="lazy">` : ""}
+            <span>${esc(v.channelCode)} · ${esc(v.channelName)}</span>
+          </div>
+          <div class="video-title">${esc(v.title)}</div>
+          <div class="video-date">${formatRelativeDate(v.publishedAt)}</div>
+          <a class="card-link video-link" href="https://www.youtube.com/watch?v=${esc(v.videoId)}" target="_blank" rel="noopener noreferrer">Obejrzyj →</a>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function renderExcluded() {
+    if (excludedVideos.length === 0) {
+      excludedStats.hidden = true;
+      excludedContainer.innerHTML = `<div class="empty-state"><span class="prompt">&gt;</span> brak Shortów/transmisji w bieżącym wyniku — albo jeszcze nic nie pobrano w zakładce „Najnowsze filmy”.</div>`;
+      return;
+    }
+    excludedStats.hidden = false;
+    excludedStats.textContent = `${excludedVideos.length} pozycji odsianych z głównej listy`;
+    excludedContainer.innerHTML = renderVideoCardsHtml(excludedVideos);
+  }
+
+  // filtruje/sortuje już pobrane filmy (bez ponownego odpytywania YouTube)
+  function renderVideos() {
+    const query = videoChannelFilter.value.trim().toLowerCase();
+
+    if (fetchedVideos.length === 0) {
+      videoFilterCount.textContent = "";
+      videosContainer.innerHTML = `<div class="empty-state"><span class="prompt">&gt;</span> brak filmów w wybranym zakresie dat.</div>`;
+      return;
+    }
+
+    let list = fetchedVideos;
+    if (selectedVideoCategory !== "all") {
+      list = list.filter(v => v.channelCategory === selectedVideoCategory);
+    }
+    if (query) {
+      list = list.filter(v => v.channelName.toLowerCase().includes(query));
+    }
+    list = sortVideos(list);
+
+    videoFilterCount.textContent = (query || selectedVideoCategory !== "all")
+      ? `Pokazano ${list.length} / ${fetchedVideos.length} filmów`
+      : "";
+
+    if (list.length === 0) {
+      videosContainer.innerHTML = query
+        ? `<div class="empty-state"><span class="prompt">&gt;</span> żaden kanał nie pasuje do „${esc(query)}”.</div>`
+        : `<div class="empty-state"><span class="prompt">&gt;</span> brak filmów w tej kategorii w bieżącym wyniku.</div>`;
+      return;
+    }
+
+    videosContainer.innerHTML = renderVideoCardsHtml(list);
+  }
+
+  loadVideosBtn.addEventListener("click", loadLatestVideos);
+
+  videoChannelFilter.addEventListener("input", renderVideos);
+
+  videoCategoryFilter.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    videoCategoryFilter.querySelectorAll(".filter-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
+    selectedVideoCategory = btn.dataset.category;
+    renderVideos();
+  });
+
+  videoSortContainer.addEventListener("click", (e) => {
+    const btn = e.target.closest(".filter-btn");
+    if (!btn) return;
+    videoSortContainer.querySelectorAll(".filter-btn").forEach(b => {
+      b.classList.remove("active");
+      b.setAttribute("aria-pressed", "false");
+    });
+    btn.classList.add("active");
+    btn.setAttribute("aria-pressed", "true");
+    selectedVideoSort = btn.dataset.sort;
+    renderVideos();
+  });
+
+  // przywraca ostatni pobrany wynik z localStorage, żeby nie trzeba było pobierać od nowa
+  // po powrocie do zakładki / odświeżeniu strony — kliknięcie "Pokaż listę filmów" zawsze robi świeże pobranie
+  function tryLoadVideoCache() {
+    const cache = getVideoCache();
+    if (!cache || !Array.isArray(cache.videos) || cache.videos.length === 0) return;
+
+    fetchedVideos = cache.videos;
+    excludedVideos = Array.isArray(cache.excluded) ? cache.excluded : [];
+
+    if (cache.rangeType === "days") {
+      selectedRangeType = "days";
+      selectedDays = cache.rangeDays || 30;
+      customDaysInput.value = selectedDays;
+    } else {
+      selectedRangeType = "months";
+      selectedMonths = cache.rangeMonths || 3;
+    }
+    rangeContainer.querySelectorAll(".filter-btn").forEach(b => {
+      const isActive = cache.rangeType === "days"
+        ? b.dataset.rangeType === "days"
+        : (b.dataset.rangeType === "months" && Number(b.dataset.months) === selectedMonths);
+      b.classList.toggle("active", isActive);
+      b.setAttribute("aria-pressed", String(isActive));
+    });
+    customDaysRow.hidden = selectedRangeType !== "days";
+
+    videosStats.hidden = false;
+    videosStats.textContent = `Wynik z pamięci podręcznej (pobrano ${formatCacheTimestamp(cache.fetchedAt)}) — ${fetchedVideos.length} filmów. Kliknij „Pokaż listę filmów”, aby odświeżyć.`;
+    videoFilterBlock.hidden = fetchedVideos.length === 0;
+    renderVideos();
+    renderExcluded();
+  }
+
+  function tick() {
+    const now = new Date();
+    const fmt = new Intl.DateTimeFormat("pl-PL", {
+      timeZone: "Europe/Warsaw",
+      hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+    });
+    document.getElementById("clock").textContent = fmt.format(now);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  updateRestoreVisibility();
+  renderGrid();
+  tryLoadVideoCache();
+</script>
+</body>
+</html>
